@@ -1,0 +1,12 @@
+# Cache BCTC theo mã — dựng lại được, ~3MB, không cần theo dõi
+data/cache/
+refresh.log
+
+# Chi tiết hạ tầng máy chủ nội bộ: cổng, tunnel ID, đường dẫn.
+# Repo này công khai nên giữ chúng ở máy.
+nginx.conf
+compose.yaml
+deploy/
+
+__pycache__/
+*.pyc
