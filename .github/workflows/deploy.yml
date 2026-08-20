@@ -51,6 +51,22 @@ jobs:
             git push
           }
 
+      # GitHub Pages đặt Cache-Control: max-age=600 cho MỌI file và không cho
+      # đổi. Trình duyệt vì thế có thể lấy index.html mới nhưng app.js cũ —
+      # đúng lỗi đã gặp: bản cũ tìm #keyIndex vốn đã bị xoá khi tách workspace.
+      # Đóng dấu commit SHA vào URL tài nguyên để mỗi lần deploy là một URL mới.
+      - name: Đóng dấu phiên bản vào URL tài nguyên
+        run: |
+          V=${GITHUB_SHA::8}
+          sed -i \
+            -e "s|href=\"css/app\.css\"|href=\"css/app.css?v=$V\"|" \
+            -e "s|src=\"vendor/lightweight-charts\.js\"|src=\"vendor/lightweight-charts.js?v=$V\"|" \
+            -e "s|src=\"js/app\.js\"|src=\"js/app.js?v=$V\"|" \
+            site/index.html
+          sed -i "s|from './\([a-z0-9]*\).js'|from './\1.js?v=$V'|g" site/js/app.js
+          echo "— index.html —"; grep -oE '(href|src)="[^"]*\?v=[^"]*"' site/index.html
+          echo "— app.js —";     grep -oE "from '\./[^']*'" site/js/app.js
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
