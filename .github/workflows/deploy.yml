@@ -32,12 +32,32 @@ jobs:
         with:
           python-version: '3.12'
 
+      # Lịch dự phòng: chỉ dùng khi máy chủ nội bộ tắt. Nếu VNDirect chặn IP
+      # runner thì lần tải có thể thiếu phiên, làm chuỗi ngắn đi — nên phải so
+      # với bản đã commit trước khi ghi đè, thà giữ dữ liệu cũ còn hơn đăng bản
+      # khuyết.
       - name: Tải lại dữ liệu (dự phòng)
         if: github.event_name != 'push'
         continue-on-error: true
         run: |
+          cp site/data/vnindex_pe.json /tmp/pe_truoc.json
+          cp site/data/fx.json /tmp/fx_truoc.json
           python3 scripts/fetch_data.py
           python3 scripts/fetch_fx.py
+          python3 - <<'EOF'
+          import json, shutil, sys
+          def n_pe(p):
+              s = json.load(open(p))['series']
+              return len(s), sum(1 for r in s if 'pe' in r)
+          for moi, cu in (('site/data/vnindex_pe.json', '/tmp/pe_truoc.json'),
+                          ('site/data/fx.json', '/tmp/fx_truoc.json')):
+              a, b = n_pe(moi), n_pe(cu)
+              if a[0] < b[0] * 0.98 or a[1] < b[1] * 0.98:
+                  print(f"::warning::{moi} ngắn đi ({a} < {b}) — giữ bản cũ")
+                  shutil.copy(cu, moi)
+              else:
+                  print(f"{moi}: {b} -> {a}")
+          EOF
 
       - name: Commit nếu dữ liệu đổi
         if: github.event_name != 'push'

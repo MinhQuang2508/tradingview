@@ -57,8 +57,13 @@ INDEX_START = "2000-01-01"      # VNINDEX: lấy hết những gì Vietcap có
 PRICE_START = "2013-01-01"      # giá gốc của VNDirect bắt đầu từ đây
 ANCHOR_EVERY = 5                # mốc vốn hoá: mỗi 5 phiên (~1 tuần)
 WORKERS = 6
-CACHE_TTL_FS = 30 * 86400
-CACHE_TTL_PX = 90 * 86400
+# Số liệu đã cũ thì không đổi nữa nên giữ cache lâu; số liệu gần đây vẫn còn
+# chạy — giá trong phiên chưa chốt, doanh nghiệp còn nộp báo cáo — nên phải
+# hết hạn nhanh, nếu không lần chạy 16:15 sẽ dùng lại giá dở dang lúc trưa.
+CACHE_TTL_SETTLED = 90 * 86400
+CACHE_TTL_FRESH = 3 * 3600
+PX_SETTLE_DAYS = 10             # phiên cũ hơn ngần này coi như đã chốt
+FS_SETTLE_DAYS = 200            # quý chốt sổ lâu hơn ngần này coi như đã nộp xong
 MIN_COVERAGE = 0.85             # tỉ lệ vốn hoá đã có BCTC, tối thiểu
 MIN_TICKERS = 100
 
@@ -133,8 +138,13 @@ def _snapshot(day):
             if r.get("close") and r.get("type") == "STOCK"}
 
 
+def settled_ttl(iso_date, settle_days):
+    age = (dt.date.today() - dt.date.fromisoformat(iso_date)).days
+    return CACHE_TTL_SETTLED if age >= settle_days else CACHE_TTL_FRESH
+
+
 def fetch_snapshot(day):
-    return cached("px", _snapshot, day, CACHE_TTL_PX)
+    return cached("px", _snapshot, day, settled_ttl(day, PX_SETTLE_DAYS))
 
 
 # ----------------------------------------------------------------- BCTC ---
@@ -154,7 +164,8 @@ def _item_quarter(key):
 
 
 def fetch_item_quarter(name, fiscal):
-    return cached("fs", _item_quarter, f"{name}|{fiscal}", CACHE_TTL_FS)
+    return cached("fs", _item_quarter, f"{name}|{fiscal}",
+                  settled_ttl(fiscal, FS_SETTLE_DAYS))
 
 
 DEFAULT_LAG = {False: 45, True: 90}      # quý thường / quý 4
