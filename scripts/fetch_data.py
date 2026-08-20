@@ -450,6 +450,35 @@ def build():
                         first_pb = first_pb or day
         series.append(row)
 
+    # --- chỉ giữ đoạn LIỀN MẠCH -----------------------------------------
+    # Khi một mã vốn hoá lớn vừa niêm yết mà chưa đủ 4 quý BCTC (VCB lên sàn
+    # 30/06/2009, VNDirect chỉ có số từ quý 3/2008), tỉ lệ phủ tụt dưới ngưỡng
+    # và chuỗi bị thủng — có lỗ dài tới 87 phiên. Vẽ lên thì thư viện nối thẳng
+    # hai đầu, trông như số liệu thật. Thà cắt còn hơn để người đọc tưởng đó là
+    # dữ liệu.
+    def trim_to_run(key):
+        idx = [i for i, r in enumerate(series) if key in r]
+        if not idx:
+            return None, 0
+        start = idx[-1]
+        for a, b in zip(reversed(idx[:-1]), reversed(idx[1:])):
+            if b - a != 1:
+                break
+            start = a
+        dropped = 0
+        for i in idx:
+            if i < start:
+                series[i].pop(key, None)
+                series[i].pop("est", None)
+                dropped += 1
+        return series[start]["d"], dropped
+
+    pe_from, pe_drop = trim_to_run("pe")
+    pb_from, pb_drop = trim_to_run("pb")
+    print(f"· Cắt về đoạn liền mạch: P/E từ {pe_from} (bỏ {pe_drop} phiên rời rạc) · "
+          f"P/B từ {pb_from} (bỏ {pb_drop})")
+    first_pe, first_pb = pe_from, pb_from
+
     payload = {
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "method": ("P/E = sum(VonHoa)/sum(LNST TTM cong ty me da cong bo); "

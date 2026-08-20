@@ -140,11 +140,13 @@ export class ValuationChart {
                        minMove: spec.digits ? 10 ** -spec.digits : 1 },
       }, paneIndex);
 
+      // Điểm thiếu phải đẩy vào dưới dạng "whitespace" (chỉ có time, không có
+      // value) chứ không được bỏ qua: bỏ qua thì thư viện nối thẳng hai đầu lỗ
+      // hổng, trông y như số liệu thật.
       const data = [];
       for (const r of rows) {
         const v = r[spec.key];
-        if (v == null) continue;
-        data.push({ time: r.d, value: this._project(name, v) });
+        data.push(v == null ? { time: r.d } : { time: r.d, value: this._project(name, v) });
       }
       s.setData(data);
       this.series[name] = s;

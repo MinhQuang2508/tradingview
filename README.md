@@ -6,7 +6,7 @@ Terminal web hai bộ dữ liệu về thị trường Việt Nam.
 
 | Tab | Nội dung |
 |---|---|
-| **Định giá** | VNINDEX từ **2004** cùng **P/E** và **P/B** toàn thị trường HOSE từ **2008** (4.333 phiên), tính từ báo cáo tài chính của từng doanh nghiệp chứ không lấy lại số của bên thứ ba |
+| **Định giá** | VNINDEX từ **2004**, **P/B** từ **2008** (4.499 phiên), **P/E** từ **2010** (4.010 phiên) — tính từ báo cáo tài chính của từng doanh nghiệp chứ không lấy lại số của bên thứ ba |
 | **Tỷ giá** | **USD/VND** từ **2003** (5.222 phiên) đặt cạnh **Dollar Index** và **USD/CNY**, kèm giá mua/bán Vietcombank |
 
 | | |
