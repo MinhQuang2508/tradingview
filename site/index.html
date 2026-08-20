@@ -18,6 +18,8 @@
     <span class="brand-sub" id="brandSub"></span>
   </div>
 
+  <nav class="ws" id="wsSeg" role="group" aria-label="Bộ dữ liệu"></nav>
+
   <span class="sep"></span>
   <div class="seg" id="rangeSeg" role="group"></div>
 
@@ -44,9 +46,7 @@
   <main class="chart-area">
     <div id="chart"></div>
     <div class="chart-foot">
-      <span class="key" id="keyIndex"><i style="background:var(--idx)"></i><span></span></span>
-      <span class="key" id="keyPe"><i style="background:var(--pe)"></i><span></span></span>
-      <span class="key" id="keyPb"><i style="background:var(--live)"></i><span></span></span>
+      <span class="legend-inline" id="legend"></span>
       <span class="note" id="chartNote"></span>
     </div>
   </main>
@@ -71,13 +71,7 @@
       <div class="rowcount num" id="rowCount"></div>
       <div class="tablewrap">
         <table>
-          <thead id="tblHead"><tr>
-            <th data-col="d"  id="thDate"  aria-sort="descending"><span></span><span class="arrow">▼</span></th>
-            <th data-col="i"  id="thIndex" aria-sort="none"><span></span><span class="arrow">▾</span></th>
-            <th data-col="dI" id="thChg"   aria-sort="none"><span></span><span class="arrow">▾</span></th>
-            <th data-col="pe" id="thPe"    aria-sort="none"><span></span><span class="arrow">▾</span></th>
-            <th data-col="pb" id="thPb"    aria-sort="none"><span></span><span class="arrow">▾</span></th>
-          </tr></thead>
+          <thead id="tblHead"></thead>
           <tbody id="tblBody"></tbody>
         </table>
       </div>

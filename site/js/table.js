@@ -1,11 +1,14 @@
-/* Bảng số liệu: lọc theo khoảng ngày + sắp xếp theo bất kỳ cột nào.
-   Danh sách có thể lên tới ~1.900 dòng nên vẽ bằng một lần gán innerHTML
-   thay vì tạo từng node — nhanh hơn hẳn và vẫn đủ đơn giản. */
+/* Bảng số liệu dùng chung cho mọi workspace: cột do bên gọi khai báo, còn lọc
+   theo khoảng ngày và sắp xếp thì giống nhau.
+
+   Danh sách có thể lên tới ~6.000 dòng nên vẽ bằng một lần gán innerHTML thay
+   vì tạo từng node — nhanh hơn hẳn và vẫn đủ đơn giản. */
 
 export class DataTable {
   constructor({ head, body, count, onSelect }) {
     this.head = head; this.body = body; this.count = count;
     this.onSelect = onSelect;
+    this.cols = [];
     this.sort = { col: 'd', dir: 'desc' };
     this.filter = { quick: 'all', from: '', to: '' };
     this.rows = [];
@@ -17,7 +20,7 @@ export class DataTable {
       const col = th.dataset.col;
       this.sort = this.sort.col === col
         ? { col, dir: this.sort.dir === 'asc' ? 'desc' : 'asc' }
-        : { col, dir: col === 'd' ? 'desc' : 'desc' };
+        : { col, dir: 'desc' };
       this.render();
     });
 
@@ -30,37 +33,44 @@ export class DataTable {
     });
   }
 
+  /** cols: [{ key, label, type:'date'|'num'|'pct', digits }] */
+  setColumns(cols) {
+    this.cols = cols;
+    if (!cols.some(c => c.key === this.sort.col)) this.sort = { col: 'd', dir: 'desc' };
+    this.renderHead();
+  }
+
   setRows(rows, t) { this.rows = rows; this.t = t; this.render(); }
   setFilter(patch) { Object.assign(this.filter, patch); this.render(); }
-  setLang(t) { this.t = t; this.render(); }
+  setLang(t) { this.t = t; this.renderHead(); this.render(); }
 
-  /** Dòng sau khi lọc, đã tính sẵn % thay đổi so với phiên liền trước. */
+  renderHead() {
+    this.head.innerHTML = '<tr>' + this.cols.map(c =>
+      `<th data-col="${c.key}" aria-sort="none">${c.label}<span class="arrow">▾</span></th>`
+    ).join('') + '</tr>';
+  }
+
   computeView() {
     const { quick, from, to } = this.filter;
     let out = this.rows;
-
     if (quick !== 'all' && quick !== 'custom') {
-      const n = parseInt(quick, 10);
-      out = out.slice(-n);
+      out = out.slice(-parseInt(quick, 10));
     } else if (quick === 'custom') {
       if (from) out = out.filter(r => r.d >= from);
-      if (to)   out = out.filter(r => r.d <= to);
+      if (to) out = out.filter(r => r.d <= to);
     }
-
-    // % thay đổi luôn tính theo phiên liền trước trong chuỗi gốc, không phải
-    // trong tập đã lọc — nếu không thì đổi bộ lọc lại ra con số khác.
-    return out.map(r => ({ ...r, dI: r._dI, dPe: r._dPe, dPb: r._dPb }));
+    return out.slice();
   }
 
   render() {
     const t = this.t;
+    if (!t || !this.cols.length) return;
     this.view = this.computeView();
 
     const { col, dir } = this.sort;
     const sign = dir === 'asc' ? 1 : -1;
-    const key = { d:'d', i:'i', pe:'pe', pb:'pb', dI:'dI' }[col] || 'd';
     this.view.sort((a, b) => {
-      const x = a[key], y = b[key];
+      const x = a[col], y = b[col];
       if (x == null) return 1;
       if (y == null) return -1;
       return x > y ? sign : x < y ? -sign : 0;
@@ -74,34 +84,35 @@ export class DataTable {
     });
 
     this.count.textContent = t.rows(this.view.length);
-
     if (!this.view.length) {
-      this.body.innerHTML = `<tr><td colspan="5" class="empty">${t.noRows}</td></tr>`;
+      this.body.innerHTML =
+        `<tr><td colspan="${this.cols.length}" class="empty">${t.noRows}</td></tr>`;
       return;
     }
 
-    const nf = (v, d) => v == null ? '—'
-      : v.toLocaleString(t.locale, { minimumFractionDigits: d, maximumFractionDigits: d });
-    const pct = v => {
-      if (v == null) return '<td class="flat">—</td>';
-      const cls = v > 0 ? 'up' : v < 0 ? 'down' : 'flat';
-      const s = (v > 0 ? '+' : '') + v.toLocaleString(t.locale,
-        { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      return `<td class="${cls}">${s}</td>`;
-    };
     const dmy = iso => { const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
     const fdate = t.locale === 'vi-VN' ? dmy : (iso => iso);
+    const num = (v, d) => v == null ? '—'
+      : v.toLocaleString(t.locale, { minimumFractionDigits: d, maximumFractionDigits: d });
+
+    const cell = (r, c) => {
+      const v = r[c.key];
+      if (c.type === 'date') return `<td>${fdate(v)}</td>`;
+      if (c.type === 'pct') {
+        if (v == null) return '<td class="flat">—</td>';
+        const cls = v > 0 ? 'up' : v < 0 ? 'down' : 'flat';
+        return `<td class="${cls}">${v > 0 ? '+' : ''}${num(v, 2)}</td>`;
+      }
+      return `<td>${num(v, c.digits ?? 2)}</td>`;
+    };
 
     this.body.innerHTML = this.view.map(r =>
-      `<tr data-d="${r.d}"><td>${fdate(r.d)}</td>` +
-      `<td>${nf(r.i, 2)}</td>${pct(r.dI)}` +
-      `<td>${nf(r.pe, 2)}</td><td>${nf(r.pb, 2)}</td></tr>`
-    ).join('');
+      `<tr data-d="${r.d}">${this.cols.map(c => cell(r, c)).join('')}</tr>`).join('');
   }
 
   toCSV() {
-    const head = 'date,vnindex,change_pct,pe,pb';
-    const body = this.view.map(r => [r.d, r.i, r.dI ?? '', r.pe ?? '', r.pb ?? ''].join(','));
+    const head = this.cols.map(c => c.key).join(',');
+    const body = this.view.map(r => this.cols.map(c => r[c.key] ?? '').join(','));
     return [head, ...body].join('\n');
   }
 }

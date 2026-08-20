@@ -4,6 +4,31 @@
 export const DICT = {
   vi: {
     locale: 'vi-VN',
+    ws: { val:'Định giá', fx:'Tỷ giá' },
+    wsTip: { val:'VNINDEX cùng P/E và P/B toàn thị trường HOSE',
+             fx:'USD/VND đặt cạnh sức mạnh đồng đô la và USD/CNY' },
+    fx: {
+      keyUsd:'USD/VND (đồng)', keyDxy:'Dollar Index (điểm)',
+      keyCny:'USD/CNY', keyVcb:'Vietcombank bán (đồng)',
+      roUsd:'USD/VND', roDxy:'DXY', roCny:'USD/CNY', roYtd:'Từ đầu năm',
+      metricTip:'Chọn chỉ tiêu đối chiếu',
+      m: { dxy:'DXY', usdcny:'CNY', vcbsell:'VCB' },
+      col: { date:'Ngày', usd:'USD/VND', chg:'±%', dxy:'DXY', cny:'USD/CNY' },
+      statUsd:'USD/VND trong kỳ', statDxy:'Dollar Index trong kỳ',
+      note: {
+        dual:'Hai trục có thang đo độc lập — khoảng cách giữa các đường không mang ý nghĩa. Dùng "Chuẩn hoá 100" để so mức biến động thực.',
+        stack:'Mỗi chỉ tiêu một khung riêng, chung trục thời gian — đọc mức tuyệt đối chính xác.',
+        index:'Tất cả quy về 100 tại đầu kỳ, chung một trục — thấy ngay VND mất giá nhanh hay chậm hơn sức mạnh chung của USD.'
+      },
+      about: {
+        h1:'Các chuỗi', h2:'Nguồn dữ liệu', h3:'Giới hạn',
+        p1:'<b>USD/VND</b> là tỷ giá thị trường (liên ngân hàng), không phải tỷ giá niêm yết của một ngân hàng cụ thể. Đặt cạnh <b>Dollar Index</b> để tách phần VND mất giá do đồng đô la mạnh lên trên toàn cầu khỏi phần do sức ép trong nước; <b>USD/CNY</b> để đối chiếu với đồng tiền của bạn hàng thương mại lớn nhất.',
+        p2:'Chuỗi ngày lấy từ Yahoo Finance: <code>USDVND=X</code>, <code>DX-Y.NYB</code>, <code>USDCNY=X</code>. Giá mua/bán của Vietcombank lấy từ bản tin tỷ giá công khai của ngân hàng.',
+        l1: d => `Vietcombank không cho tra lịch sử — chuỗi mua/bán được bồi dần mỗi lần chạy, hiện có từ ${d}.`,
+        l2:'Tỷ giá trung tâm của Ngân hàng Nhà nước và tỷ giá thị trường tự do chưa có trong biểu đồ: chưa tìm được nguồn miễn phí mở cho hai chuỗi này.',
+        l3:'Yahoo lấy tỷ giá theo múi giờ giao dịch quốc tế nên ngày cuối chuỗi có thể lệch một phiên so với bảng trong nước.'
+      }
+    },
     docTitle: 'VNINDEX · P/E · P/B — định giá thị trường HOSE',
     brandSub: 'định giá thị trường HOSE',
     range: { '1m':'1 tháng', '6m':'6 tháng', '1y':'1 năm', '3y':'3 năm', '5y':'5 năm', '10y':'10 năm', all:'Tất cả' },
@@ -59,6 +84,31 @@ export const DICT = {
 
   en: {
     locale: 'en-US',
+    ws: { val:'Valuation', fx:'FX' },
+    wsTip: { val:'VNINDEX with market P/E and P/B',
+             fx:'USD/VND against dollar strength and USD/CNY' },
+    fx: {
+      keyUsd:'USD/VND', keyDxy:'Dollar Index', keyCny:'USD/CNY',
+      keyVcb:'Vietcombank sell', 
+      roUsd:'USD/VND', roDxy:'DXY', roCny:'USD/CNY', roYtd:'YTD',
+      metricTip:'Choose comparison series',
+      m: { dxy:'DXY', usdcny:'CNY', vcbsell:'VCB' },
+      col: { date:'Date', usd:'USD/VND', chg:'±%', dxy:'DXY', cny:'USD/CNY' },
+      statUsd:'USD/VND over period', statDxy:'Dollar Index over period',
+      note: {
+        dual:'The axes are scaled independently — the gap between lines carries no meaning. Use "Indexed 100" to compare real movement.',
+        stack:'Each measure keeps its own pane and scale while sharing the time axis — absolute levels read correctly.',
+        index:'Everything rebased to 100 at period start on one axis — shows at a glance whether the dong slid faster or slower than the dollar rose everywhere else.'
+      },
+      about: {
+        h1:'The series', h2:'Data sources', h3:'Limitations',
+        p1:'<b>USD/VND</b> is the market (interbank) rate, not any single bank\'s board rate. <b>Dollar Index</b> sits beside it to separate dong weakness caused by a globally stronger dollar from domestic pressure; <b>USD/CNY</b> tracks the currency of Vietnam\'s largest trading partner.',
+        p2:'Daily series from Yahoo Finance: <code>USDVND=X</code>, <code>DX-Y.NYB</code>, <code>USDCNY=X</code>. Vietcombank buy/sell comes from the bank\'s public rate feed.',
+        l1: d => `Vietcombank publishes no history — the buy/sell series accumulates on each run and currently starts ${d}.`,
+        l2:'The State Bank central rate and the parallel-market rate are not plotted: no open free source found for either.',
+        l3:'Yahoo timestamps FX in international trading hours, so the final point can sit one session away from domestic boards.'
+      }
+    },
     docTitle: 'VNINDEX · P/E · P/B — HOSE market valuation',
     brandSub: 'HOSE market valuation',
     range: { '1m':'1M', '6m':'6M', '1y':'1Y', '3y':'3Y', '5y':'5Y', '10y':'10Y', all:'All' },

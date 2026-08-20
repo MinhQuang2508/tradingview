@@ -16,8 +16,10 @@
   --text:      #dde5f0;
   --text-2:    #96a3b8;
   --text-3:    #64738a;
-  --idx:       #3987e5;
-  --pe:        #d95926;
+  --s1:        #3987e5;
+  --s2:        #d95926;
+  --s3:        #199e70;
+  --s4:        #c98500;
   --up:        #23a06f;
   --down:      #e5484d;
   --live:      #2bd9a0;
@@ -40,8 +42,10 @@
   --text:      #10151d;
   --text-2:    #4d5a6d;
   --text-3:    #7c8899;
-  --idx:       #2a78d6;
-  --pe:        #eb6834;
+  --s1:        #2a78d6;
+  --s2:        #eb6834;
+  --s3:        #1baf7a;
+  --s4:        #eda100;
   --up:        #12855a;
   --down:      #cc2c31;
   --live:      #0f9f77;
@@ -69,7 +73,7 @@ body{
 .brand{display:flex;align-items:center;gap:8px;padding-right:4px;flex:none}
 .brand-mark{
   width:19px;height:19px;border-radius:4px;flex:none;
-  background:linear-gradient(135deg,var(--idx) 0%,var(--idx) 48%,var(--pe) 52%,var(--pe) 100%);
+  background:linear-gradient(135deg,var(--s1) 0%,var(--s1) 48%,var(--s2) 52%,var(--s2) 100%);
 }
 .brand-name{font-size:12.5px;font-weight:600;letter-spacing:.11em;white-space:nowrap}
 .brand-sub{font-size:10.5px;color:var(--text-3);white-space:nowrap;letter-spacing:.02em}
@@ -82,6 +86,16 @@ body{
 .seg button:hover{color:var(--text);background:var(--panel-3)}
 .seg button[aria-pressed="true"]{background:var(--panel-3);color:var(--text);font-weight:600}
 .lbl-short{display:none}
+
+/* chuyển bộ dữ liệu — cấp cao hơn mọi bộ lọc khác nên tách khỏi .seg thường */
+.ws{display:flex;gap:0;flex:none}
+.ws button{
+  border:0;border-bottom:2px solid transparent;background:transparent;color:var(--text-3);
+  font:inherit;font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;
+  padding:0 12px;height:var(--topbar-h);cursor:pointer;white-space:nowrap;
+}
+.ws button:hover{color:var(--text-2)}
+.ws button[aria-pressed="true"]{color:var(--text);border-bottom-color:var(--s1);font-weight:650}
 
 .btn{
   background:var(--panel-2);color:var(--text-2);border:1px solid var(--line);
@@ -119,7 +133,7 @@ body{
 .ro-v{font-size:14px;font-weight:600}
 .ro-d{font-size:11.5px;font-weight:500}
 .up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--text-3)}
-.c-idx{color:var(--idx)} .c-pe{color:var(--pe)}
+.c-s1{color:var(--s1)} .c-s2{color:var(--s2)} .c-s3{color:var(--s3)} .c-s4{color:var(--s4)}
 .band{padding:1px 7px;border-radius:3px;font-size:10.5px;font-weight:600;letter-spacing:.04em}
 
 /* ------------------------------------------------------ workspace --- */
@@ -140,6 +154,7 @@ body{
   font-size:10.5px;color:var(--text-3);
   white-space:nowrap;overflow:hidden;
 }
+.legend-inline{display:inline-flex;align-items:center;gap:14px;flex:none}
 .key{display:inline-flex;align-items:center;gap:6px;flex:none}
 .key i{width:14px;height:2px;border-radius:1px;flex:none}
 .note{color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -152,7 +167,7 @@ body{
   padding:9px 4px;cursor:pointer;border-bottom:2px solid transparent;
 }
 .tab:hover{color:var(--text-2)}
-.tab.active{color:var(--text);border-bottom-color:var(--idx);font-weight:600}
+.tab.active{color:var(--text);border-bottom-color:var(--s1);font-weight:600}
 .pane{display:none;flex:1 1 auto;min-height:0;min-width:0;flex-direction:column;overflow:hidden}
 .pane.active{display:flex}
 
@@ -182,7 +197,7 @@ thead th:first-child{text-align:left}
 thead th:hover{color:var(--text-2)}
 thead th .arrow{opacity:.35;margin-left:3px;font-size:9px}
 thead th[aria-sort]:not([aria-sort="none"]){color:var(--text)}
-thead th[aria-sort]:not([aria-sort="none"]) .arrow{opacity:1;color:var(--idx)}
+thead th[aria-sort]:not([aria-sort="none"]) .arrow{opacity:1;color:var(--s1)}
 tbody td{
   padding:5px 10px;text-align:right;border-bottom:1px solid var(--line-soft);
   font-family:var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap;
@@ -217,7 +232,7 @@ tbody tr.is-sel td{background:var(--panel-3)}
   font-family:var(--f-num);font-size:11px;color:var(--text)}
 .doc ul{margin:0 0 8px;padding-left:17px}
 .doc li{margin-bottom:4px}
-.doc a{color:var(--idx)}
+.doc a{color:var(--s1)}
 .formula{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:9px 11px;
   font-family:var(--f-num);font-size:11.5px;color:var(--text);margin:0 0 9px;overflow-x:auto}
 

@@ -1,14 +1,16 @@
-# VNINDEX · P/E · P/B
+# VNINDEX · P/E · P/B · Tỷ giá
 
-Terminal web theo dõi **VNINDEX** cùng **P/E** và **P/B** toàn thị trường HOSE,
-tính từ báo cáo tài chính của từng doanh nghiệp chứ không lấy lại số của bên thứ ba.
+Terminal web hai bộ dữ liệu về thị trường Việt Nam.
 
 **→ https://minhquang2508.github.io/tradingview/**
 
+| Tab | Nội dung |
+|---|---|
+| **Định giá** | VNINDEX từ **2004** (5.632 phiên) cùng **P/E** và **P/B** toàn thị trường HOSE từ **2019**, tính từ báo cáo tài chính của từng doanh nghiệp chứ không lấy lại số của bên thứ ba |
+| **Tỷ giá** | **USD/VND** từ **2003** (5.222 phiên) đặt cạnh **Dollar Index** và **USD/CNY**, kèm giá mua/bán Vietcombank |
+
 | | |
 |---|---|
-| Chuỗi giá | VNINDEX từ **2004** (5.632 phiên) |
-| Chuỗi định giá | P/E và P/B từ **2019** — báo cáo tài chính của Vietcap chỉ lùi tới quý 1/2018 |
 | Biểu đồ | Lightweight Charts — 3 kiểu: 2 trục, xếp tầng, chuẩn hoá 100 |
 | Bảng | Lọc nhanh / theo khoảng ngày, sắp xếp mọi cột, tải CSV |
 | Ngôn ngữ | Tiếng Việt · English |
@@ -33,9 +35,23 @@ P/B(t) = Σ VốnHoá_i(t) / Σ VốnChủSởHữu_i(t)
 
 Đối chiếu biểu đồ định giá FiinTrade ngày 13/08/2026: FiinTrade ≈ 12,1 — số ở đây 12,30.
 
+## Tab Tỷ giá
+
+| Chuỗi | Ý nghĩa |
+|---|---|
+| **USD/VND** | Tỷ giá thị trường (liên ngân hàng), không phải giá niêm yết của một ngân hàng cụ thể |
+| **Dollar Index** | Tách phần VND mất giá do đồng đô la mạnh lên toàn cầu khỏi phần do sức ép trong nước |
+| **USD/CNY** | Đối chiếu với đồng tiền của bạn hàng thương mại lớn nhất |
+| **Vietcombank mua/bán** | Bản tin tỷ giá công khai của ngân hàng — Vietcombank không cho tra lịch sử nên chuỗi này được **bồi dần** mỗi lần chạy |
+
+Chưa có **tỷ giá trung tâm** của Ngân hàng Nhà nước và **tỷ giá thị trường tự do**:
+đã dò SBV, Vietstock, VNSignal, WiChart, trolyluat, CafeF — nơi có dữ liệu thì
+đều bắt đăng nhập, thu phí hoặc mã hoá payload. Cũng vì lý do đó mà **lãi suất
+liên ngân hàng** và **OMO / tín phiếu** chưa lên được biểu đồ.
+
 ## Nguồn dữ liệu
 
-API công khai của Vietcap, không cần đăng nhập:
+Tab Định giá — API công khai của Vietcap, không cần đăng nhập:
 
 | Dữ liệu | Endpoint |
 |---|---|
@@ -44,11 +60,19 @@ API công khai của Vietcap, không cần đăng nhập:
 | KQKD & CĐKT theo quý (kèm `publicDate`) | `GET iq.vietcap.com.vn/api/iq-insight-service/v1/company/{sym}/financial-statement?section=…` |
 | Số cổ phiếu lưu hành | `GET iq.vietcap.com.vn/api/iq-insight-service/v1/company/{sym}/statistics-financial` |
 
+Tab Tỷ giá:
+
+| Dữ liệu | Nguồn |
+|---|---|
+| USD/VND, DXY, USD/CNY | Yahoo Finance — `USDVND=X`, `DX-Y.NYB`, `USDCNY=X` |
+| Tỷ giá Vietcombank | `portal.vietcombank.com.vn/Usercontrols/TVPortal.TyGia/pXML.aspx?b=10` |
+
 ## Cập nhật
 
-`scripts/fetch_data.py` dựng lại `site/data/vnindex_pe.json`. Máy chủ nội bộ chạy
-lệnh này sau mỗi phiên rồi đẩy lên đây; GitHub Actions thấy commit mới sẽ deploy
-lại Pages. Có thêm một lịch chạy dự phòng ngay trên Actions.
+`scripts/fetch_data.py` dựng lại `site/data/vnindex_pe.json`, `scripts/fetch_fx.py`
+dựng `site/data/fx.json`. Máy chủ nội bộ chạy `refresh.sh` sau mỗi phiên rồi đẩy
+lên đây; GitHub Actions thấy commit mới sẽ deploy lại Pages. Có thêm một lịch
+chạy dự phòng ngay trên Actions.
 
 Bản đặt trên GitHub Pages là **dữ liệu cuối ngày**. Cập nhật trong phiên (mỗi 20
 giây) chỉ có ở bản tự host, vì API của Vietcap chặn CORS nên cần một proxy cùng
@@ -57,7 +81,8 @@ origin.
 ## Chạy tại máy
 
 ```bash
-python3 scripts/fetch_data.py     # dựng dữ liệu
+python3 scripts/fetch_data.py     # VNINDEX + P/E + P/B
+python3 scripts/fetch_fx.py       # USD/VND + DXY + USD/CNY
 python3 -m http.server -d site 8000
 ```
 

@@ -4,10 +4,19 @@
 
 const LWC = window.LightweightCharts;
 
+/* Mỗi chuỗi khai báo khoá trong dữ liệu, biến màu CSS và số chữ số thập phân.
+   Ô màu dùng chung một bảng đã kiểm định độ tách biệt cho người mù màu ở cả
+   nền sáng lẫn nền tối, nên hai workspace tái sử dụng cùng bốn ô. */
 export const SERIES = {
-  index: { key:'i',  color:'var(--idx)', cssVar:'--idx', digits:2 },
-  pe:    { key:'pe', color:'var(--pe)',  cssVar:'--pe',  digits:2 },
-  pb:    { key:'pb', color:'var(--live)',cssVar:'--live',digits:2 },
+  // workspace "định giá"
+  index:  { key:'i',       cssVar:'--s1', digits:2 },
+  pe:     { key:'pe',      cssVar:'--s2', digits:2 },
+  pb:     { key:'pb',      cssVar:'--s3', digits:2 },
+  // workspace "tỷ giá"
+  usdvnd: { key:'usdvnd',  cssVar:'--s1', digits:0 },
+  dxy:    { key:'dxy',     cssVar:'--s2', digits:2 },
+  usdcny: { key:'usdcny',  cssVar:'--s3', digits:3 },
+  vcbsell:{ key:'vcb_sell',cssVar:'--s4', digits:0 },
 };
 
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -92,7 +101,7 @@ export class ValuationChart {
    * @param mode   'dual' | 'stack' | 'index'
    * @param active ['index','pe','pb'] — chỉ tiêu đang bật
    */
-  render(rows, mode, active) {
+  render(rows, mode, active, primary = 'index') {
     const range = this.chart.timeScale().getVisibleLogicalRange();
     const hadSeries = Object.keys(this.series).length > 0;
 
@@ -104,7 +113,7 @@ export class ValuationChart {
     this.needLeftScale = mode === 'dual';
     this.chart.priceScale('left').applyOptions({ visible: this.needLeftScale });
 
-    const names = ['index', ...active];
+    const names = [primary, ...active];
     this.mode = mode;
     this.base = {};
     if (mode === 'index')
@@ -127,7 +136,8 @@ export class ValuationChart {
         lastValueVisible: true,
         crosshairMarkerVisible: true,
         crosshairMarkerRadius: 3,
-        priceFormat: { type: 'price', precision: spec.digits, minMove: 10 ** -spec.digits },
+        priceFormat: { type: 'price', precision: spec.digits,
+                       minMove: spec.digits ? 10 ** -spec.digits : 1 },
       }, paneIndex);
 
       const data = [];

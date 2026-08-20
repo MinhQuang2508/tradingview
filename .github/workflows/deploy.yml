@@ -35,7 +35,9 @@ jobs:
       - name: Tải lại dữ liệu (dự phòng)
         if: github.event_name != 'push'
         continue-on-error: true
-        run: python3 scripts/fetch_data.py
+        run: |
+          python3 scripts/fetch_data.py
+          python3 scripts/fetch_fx.py
 
       - name: Commit nếu dữ liệu đổi
         if: github.event_name != 'push'
@@ -43,7 +45,7 @@ jobs:
         run: |
           git config user.name  'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add site/data/vnindex_pe.json
+          git add site/data/
           git diff --cached --quiet || {
             git commit -m "Cập nhật dữ liệu $(date -u +%d/%m/%Y)"
             git push
