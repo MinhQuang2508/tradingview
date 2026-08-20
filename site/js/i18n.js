@@ -75,9 +75,10 @@ export const DICT = {
       p4:'Dữ liệu cuối ngày chạy lại tự động sau mỗi phiên; trang tự dò file mới mỗi 5 phút. Trong giờ giao dịch, VNINDEX cập nhật mỗi 20 giây và P/E, P/B suy ra theo tỉ lệ — lợi nhuận và vốn chủ sở hữu không đổi trong phiên nên đây là cách tính đúng.',
       l1:'Vốn hoá chốt lại mỗi năm phiên rồi nội suy theo VNINDEX. Hợp lệ vì VNINDEX chính là tổng vốn hoá chia cho một số chia chỉ đổi khi có niêm yết mới hoặc phát hành thêm.',
       l2:'Ngày công bố báo cáo chỉ ghi nhận chính xác từ 2020. Với kỳ cũ hơn, mỗi doanh nghiệp được gán độ trễ nộp điển hình của chính nó học từ giai đoạn sau — nên các bước chuyển mùa báo cáo là ước lượng.',
-      l3:'Chuỗi giá gốc chỉ lùi tới đầu 2013, vì vậy P/E và P/B bắt đầu từ đó dù VNINDEX có từ 2004.',
+      l3:'Từ 2013 trở đi vốn hoá dùng giá gốc. Trước đó không có nguồn giá gốc miễn phí, nên vốn hoá được suy từ giá điều chỉnh với hệ số quy đổi chốt tại đầu 2013 — đo trên đoạn 2013–2026 thì cách này lệch khoảng 0,45%/năm, tức phần 2008–2012 sai số vài phần trăm. Rổ giai đoạn đó cũng chỉ gồm mã còn niêm yết tới 2013.',
       l4:'Có thể lệch vài phần trăm so với số FiinTrade công bố (khác rổ và cách xử lý free-float).'
     },
+    estNote: d => `Phần trước ${d} là ƯỚC LƯỢNG: vốn hoá suy từ giá điều chỉnh vì chưa có nguồn giá gốc miễn phí cho giai đoạn đó (sai số đo được khoảng 2%).`,
     noVal: d => `Chỉ có giá trước ${d} — P/E và P/B bắt đầu từ đó, do chuỗi giá gốc dùng để tính vốn hoá chỉ lùi tới đầu 2013.`,
     toastNew:'Có dữ liệu mới — đã tải lại'
   },
@@ -155,9 +156,10 @@ export const DICT = {
       p4:'End-of-day data rebuilds automatically after each session and the page checks for a newer file every 5 minutes. During trading hours VNINDEX refreshes every 20 seconds and P/E and P/B scale with it — earnings and book value do not change intraday, so this is exact.',
       l1:'Market cap is fixed every fifth session and interpolated by VNINDEX in between — valid because VNINDEX is itself total market cap over a divisor that only moves on new listings and share issues.',
       l2:'Filing dates are only recorded accurately from 2020. For older quarters each company is assigned its own typical filing lag learned from the later period, so earnings-season transitions there are estimates.',
-      l3:'The raw price series reaches back only to early 2013, so P/E and P/B start there even though VNINDEX goes back to 2004.',
+      l3:'From 2013 onward market cap uses raw prices. Before that no free raw-price source exists, so market cap is derived from adjusted prices with a conversion factor fixed at the start of 2013 — measured over 2013–2026 that approach drifts about 0.45%/year, so the 2008–2012 stretch carries a few percent of error. Its basket also only holds names that survived to 2013.',
       l4:"Expect a few percent difference from FiinTrade's published figures (different basket and free-float treatment)."
     },
+    estNote: d => `Everything before ${d} is ESTIMATED: market cap is derived from adjusted prices because no free raw-price source reaches that far back (measured error about 2%).`,
     noVal: d => `Price only before ${d} — P/E and P/B start there, because the raw price series behind market cap only reaches back to early 2013.`,
     toastNew:'New data available — reloaded'
   }

@@ -249,10 +249,16 @@ function renderLegend() {
   $('#legend').innerHTML = names.map(n =>
     `<span class="key"><i style="background:var(${SERIES[n].cssVar})"></i>${label[n]}</span>`).join('');
   const note = state.ws === 'val' ? t.note[view()] : t.fx.note[view()];
-  const from = cfg().fromKey && DATA()?.[cfg().fromKey];
   const rows = sliceRange();
-  const gap = from && rows.length && rows[0].d < from;
-  $('#chartNote').textContent = (gap ? t.noVal(fdate(from)) + ' ' : '') + note;
+  const bits = [];
+  if (state.ws === 'val' && rows.length) {
+    const from = DATA()?.valuation_from;
+    const exact = DATA()?.exact_from;
+    if (from && rows[0].d < from) bits.push(t.noVal(fdate(from)));
+    if (exact && rows.some(r => r.est)) bits.push(t.estNote(fdate(exact)));
+  }
+  bits.push(note);
+  $('#chartNote').textContent = bits.join(' ');
 }
 
 function renderStatus() {

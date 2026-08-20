@@ -55,6 +55,7 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 
 INDEX_START = "2000-01-01"      # VNINDEX: lấy hết những gì Vietcap có
 PRICE_START = "2013-01-01"      # giá gốc của VNDirect bắt đầu từ đây
+LEGACY_START = "2007-01-01"     # trước đó chỉ có giá điều chỉnh (xem legacy_factors)
 ANCHOR_EVERY = 5                # mốc vốn hoá: mỗi 5 phiên (~1 tuần)
 WORKERS = 6
 # Số liệu đã cũ thì không đổi nữa nên giữ cache lâu; số liệu gần đây vẫn còn
@@ -112,6 +113,31 @@ def cached(prefix, fn, key, ttl):
     return val
 
 
+# ------------------------------------------------- giá điều chỉnh (cũ) ---
+
+def fetch_adjusted(symbols):
+    """{mã: {ngày: giá điều chỉnh}} từ Vietcap, gọi theo lô 20 mã."""
+    frm = int(dt.datetime.fromisoformat(LEGACY_START)
+              .replace(tzinfo=dt.timezone.utc).timestamp())
+    to = int(time.time()) + 86400
+    out = {}
+    syms = sorted(symbols)
+    for i in range(0, len(syms), 20):
+        try:
+            res = http_json(f"{TRADING}/chart/OHLCChart/gap",
+                            {"timeFrame": "ONE_DAY", "symbols": syms[i:i + 20],
+                             "from": frm, "to": to})
+        except Exception:                            # noqa: BLE001
+            continue
+        for e in res or []:
+            if not e.get("t"):
+                continue
+            out[e["symbol"]] = {
+                dt.datetime.fromtimestamp(int(t), dt.timezone.utc).date().isoformat(): float(c)
+                for t, c in zip(e["t"], e["c"]) if c is not None}
+    return out
+
+
 # --------------------------------------------------------------- VNINDEX ---
 
 def fetch_vnindex():
@@ -122,8 +148,15 @@ def fetch_vnindex():
                    "from": frm, "to": int(time.time()) + 86400})[0]
     result = {}
     for ts, c in zip(d["t"], d["c"]):
-        day = dt.datetime.fromtimestamp(int(ts), dt.timezone.utc).date().isoformat()
-        result[day] = float(c)
+        if c is None:
+            continue
+        day = dt.datetime.fromtimestamp(int(ts), dt.timezone.utc).date()
+        # HOSE không giao dịch cuối tuần. Dữ liệu Vietcap có đúng một bar hỏng
+        # kiểu này — thứ Bảy 16/08/2008 ghi 900,26 trong khi phiên thứ Sáu liền
+        # trước là 488,94 — và nó đủ để tạo ra một "đỉnh P/E" giả.
+        if day.weekday() >= 5:
+            continue
+        result[day.isoformat()] = float(c)
     return result
 
 
@@ -277,10 +310,12 @@ def build():
     anchors = trading[::ANCHOR_EVERY]
     if anchors[-1] != trading[-1]:
         anchors.append(trading[-1])
-    print(f"· {len(anchors)} mốc vốn hoá (mỗi {ANCHOR_EVERY} phiên)")
+    legacy = [d for d in days if LEGACY_START <= d < PRICE_START][::ANCHOR_EVERY]
+    print(f"· {len(anchors)} mốc từ {PRICE_START[:4]} (giá gốc) "
+          f"+ {len(legacy)} mốc trước đó (giá điều chỉnh)")
 
     print("· Tải BCTC quý toàn thị trường ...", flush=True)
-    quarters = quarter_ends(int(PRICE_START[:4]) - 1, dt.date.today())
+    quarters = quarter_ends(int(LEGACY_START[:4]) - 1, dt.date.today())
     fin = {name: {} for name in ITEMS}
     jobs = [(n, q) for n in ITEMS for q in quarters]
     done = 0
@@ -341,6 +376,38 @@ def build():
         members[d] = lst
     print(f"  trung bình {sum(len(v) for v in members.values())//max(1, len(members))} mã/rổ")
 
+    # --- giai đoạn trước 2013: chỉ có giá điều chỉnh ---------------------
+    # Với mỗi mã, quy đổi một lần tại mốc giá gốc sớm nhất:
+    #     k = giá_gốc × số_CP / giá_điều_chỉnh
+    # rồi dùng chính k đó cho các mốc cũ hơn. Nếu phép điều chỉnh chỉ xử lý
+    # cổ phiếu thưởng và chia tách thì k là hằng số, phép quy đổi đúng tuyệt
+    # đối. Thực tế nó còn trừ cổ tức tiền mặt nên k trôi nhẹ — đo trên đoạn
+    # 2013–2026 thì bình quân theo vốn hoá chỉ 0,45%/năm, tức suy ngược bốn
+    # năm lệch chưa tới 2%. Đủ chính xác, nhưng vẫn là ƯỚC LƯỢNG.
+    legacy_from = None
+    if legacy:
+        d0 = anchors[0]
+        base_codes = [c for c, _ in members.get(d0, [])]
+        print(f"· Tải giá điều chỉnh cho {len(base_codes)} mã (trước {PRICE_START[:4]}) ...",
+              flush=True)
+        adj = fetch_adjusted(base_codes)
+        kfac = {}
+        for code, mc0 in members.get(d0, []):
+            a = (adj.get(code) or {}).get(d0)
+            if a and a > 0:
+                kfac[code] = mc0 / a          # = giá_gốc × số_CP / giá_điều_chỉnh
+        print(f"  quy đổi được {len(kfac)} mã")
+        for d in legacy:
+            lst = []
+            for code, k in kfac.items():
+                a = (adj.get(code) or {}).get(d)
+                if a and a > 0:
+                    lst.append((code, a * k))
+            if lst:
+                members[d] = lst
+        anchors = sorted(set(anchors) | {d for d in legacy if d in members})
+        legacy_from = next((d for d in anchors if d in members), None)
+
     print("· Tổng hợp theo ngày ...", flush=True)
     series, contrib = [], []
     first_pe = first_pb = None
@@ -374,6 +441,8 @@ def build():
                 if mc_all > 0 and n >= MIN_TICKERS:
                     if earn > 0 and mc_e / mc_all >= MIN_COVERAGE:
                         row["pe"] = round(mc_e / earn, 3)
+                        if day < PRICE_START:
+                            row["est"] = 1          # suy từ giá điều chỉnh
                         contrib.append(n)
                         first_pe = first_pe or day
                     if book > 0 and mc_b / mc_all >= MIN_COVERAGE:
@@ -397,6 +466,7 @@ def build():
         "avg_contributors": round(sum(contrib) / len(contrib)) if contrib else 0,
         "index_from": series[0]["d"] if series else None,
         "valuation_from": first_pe,
+        "exact_from": PRICE_START,
         "series": series,
     }
     path = os.path.join(OUT_DIR, "vnindex_pe.json")

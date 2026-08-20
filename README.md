@@ -6,7 +6,7 @@ Terminal web hai bộ dữ liệu về thị trường Việt Nam.
 
 | Tab | Nội dung |
 |---|---|
-| **Định giá** | VNINDEX từ **2004** (5.632 phiên) cùng **P/E** và **P/B** toàn thị trường HOSE từ **2013** (3.380 phiên), tính từ báo cáo tài chính của từng doanh nghiệp chứ không lấy lại số của bên thứ ba |
+| **Định giá** | VNINDEX từ **2004** cùng **P/E** và **P/B** toàn thị trường HOSE từ **2008** (4.333 phiên), tính từ báo cáo tài chính của từng doanh nghiệp chứ không lấy lại số của bên thứ ba |
 | **Tỷ giá** | **USD/VND** từ **2003** (5.222 phiên) đặt cạnh **Dollar Index** và **USD/CNY**, kèm giá mua/bán Vietcombank |
 
 | | |
@@ -94,7 +94,9 @@ python3 -m http.server -d site 8000
   cũ vào tháng 12/2019 nên `createdDate` của kỳ trước đó không phải ngày nộp thật.
   Với các kỳ đó, mỗi doanh nghiệp được gán độ trễ nộp điển hình *của chính nó*, học
   từ giai đoạn sau — nên bước chuyển mùa báo cáo trước 2020 là ước lượng.
-* **Chuỗi giá gốc chỉ lùi tới đầu 2013**, vì vậy P/E và P/B bắt đầu từ đó dù
-  VNINDEX có từ 2004.
+* **Đoạn 2008–2012 là ước lượng** (xem bảng hai giai đoạn ở trên); rổ giai đoạn đó
+  cũng chỉ gồm mã còn niêm yết tới 2013 nên có survivorship bias cục bộ.
+* Dữ liệu VNINDEX của Vietcap có đúng một bar hỏng — thứ Bảy 16/08/2008 ghi 900,26
+  trong khi phiên trước đó là 488,94. Pipeline lọc bỏ mọi bar rơi vào cuối tuần.
 * Vốn hoá chốt mỗi 5 phiên rồi nội suy — sai số nhỏ khi có phát hành thêm giữa hai mốc.
 * Có thể lệch vài phần trăm so với số FiinTrade công bố (khác rổ, khác cách xử lý free-float).
