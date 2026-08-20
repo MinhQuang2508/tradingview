@@ -67,18 +67,18 @@ export const DICT = {
     about: {
       h1:'Cách tính', h2:'Nguồn dữ liệu', h3:'Cập nhật', h4:'Giới hạn',
       p1:'P/E và P/B toàn thị trường tính theo phương pháp tổng hợp, cùng họ với FiinTrade và Bloomberg:',
-      p2: u => `Vốn hoá = giá đóng cửa điều chỉnh × số cổ phiếu lưu hành. Lợi nhuận TTM là tổng lãi sau thuế của cổ đông công ty mẹ 4 quý gần nhất <b>đã công bố</b>; vốn chủ sở hữu lấy kỳ gần nhất đã công bố. Cả hai neo theo ngày công bố báo cáo của <b>từng doanh nghiệp</b> — nhờ vậy chỉ số trượt dần suốt mùa báo cáo thay vì nhảy bậc một lần. Rổ tính gồm ${u} cổ phiếu niêm yết HOSE.`,
-      p3:'API công khai của Vietcap, không cần đăng nhập:',
-      s1:'Giá điều chỉnh theo ngày và theo phút',
-      s2:'Báo cáo kết quả kinh doanh và cân đối kế toán theo quý, kèm ngày công bố',
-      s3:'Số cổ phiếu đang lưu hành',
+      p2: u => `Vốn hoá dùng <b>giá đóng cửa gốc</b> nhân số cổ phiếu <b>tại chính thời điểm đó</b> (vốn góp chia mệnh giá, trừ cổ phiếu quỹ) — không dùng giá điều chỉnh, vì phép điều chỉnh trừ cả cổ tức tiền mặt nên sẽ làm vốn hoá quá khứ thấp đi. Lợi nhuận TTM là tổng lãi sau thuế của cổ đông công ty mẹ 4 quý gần nhất đã công bố; vốn chủ sở hữu lấy kỳ gần nhất đã công bố. Rổ gồm <b>mọi mã đang niêm yết HOSE tại từng thời điểm</b>, kể cả mã về sau huỷ niêm yết, nên không có survivorship bias; cơ sở dữ liệu có ${u} mã.`,
+      p3:'API công khai, không cần đăng nhập:',
+      s1:'VNINDEX theo ngày và theo phút — Vietcap',
+      s2:'Giá đóng cửa gốc toàn sàn HOSE — VNDirect finfo',
+      s3:'Báo cáo kết quả kinh doanh và cân đối kế toán theo quý — VNDirect finfo',
       p4:'Dữ liệu cuối ngày chạy lại tự động sau mỗi phiên; trang tự dò file mới mỗi 5 phút. Trong giờ giao dịch, VNINDEX cập nhật mỗi 20 giây và P/E, P/B suy ra theo tỉ lệ — lợi nhuận và vốn chủ sở hữu không đổi trong phiên nên đây là cách tính đúng.',
-      l1:'Rổ chỉ gồm mã <b>đang</b> niêm yết, không có mã đã huỷ niêm yết — số liệu càng lùi xa càng lệch.',
-      l2:'Vốn hoá dùng giá điều chỉnh cổ tức nên thấp hơn vốn hoá danh nghĩa ở giai đoạn xa.',
-      l3:'Báo cáo tài chính của Vietcap bắt đầu từ quý 1/2018 nên chuỗi định giá bắt đầu từ tháng 2/2019.',
+      l1:'Vốn hoá chốt lại mỗi năm phiên rồi nội suy theo VNINDEX. Hợp lệ vì VNINDEX chính là tổng vốn hoá chia cho một số chia chỉ đổi khi có niêm yết mới hoặc phát hành thêm.',
+      l2:'Ngày công bố báo cáo chỉ ghi nhận chính xác từ 2020. Với kỳ cũ hơn, mỗi doanh nghiệp được gán độ trễ nộp điển hình của chính nó học từ giai đoạn sau — nên các bước chuyển mùa báo cáo là ước lượng.',
+      l3:'Chuỗi giá gốc chỉ lùi tới đầu 2013, vì vậy P/E và P/B bắt đầu từ đó dù VNINDEX có từ 2004.',
       l4:'Có thể lệch vài phần trăm so với số FiinTrade công bố (khác rổ và cách xử lý free-float).'
     },
-    noVal: d => `Chỉ có giá trước ${d} — P/E và P/B bắt đầu từ đó (báo cáo tài chính của Vietcap chỉ lùi tới quý 1/2018).`,
+    noVal: d => `Chỉ có giá trước ${d} — P/E và P/B bắt đầu từ đó, do chuỗi giá gốc dùng để tính vốn hoá chỉ lùi tới đầu 2013.`,
     toastNew:'Có dữ liệu mới — đã tải lại'
   },
 
@@ -147,18 +147,18 @@ export const DICT = {
     about: {
       h1:'Method', h2:'Data sources', h3:'Updates', h4:'Limitations',
       p1:'Market P/E and P/B use the aggregate method, the same family Bloomberg and FiinTrade use:',
-      p2: u => `Market cap = adjusted close × shares outstanding. TTM earnings sum the last four <b>reported</b> quarters of net profit attributable to parent; book value takes the latest reported quarter. Both anchor to <b>each company's own</b> filing date — so the ratios drift through earnings season instead of stepping once. The basket covers ${u} HOSE-listed stocks.`,
-      p3:"Vietcap's public API, no login required:",
-      s1:'Adjusted daily and intraday prices',
-      s2:'Quarterly income statements and balance sheets, with filing dates',
-      s3:'Shares outstanding',
+      p2: u => `Market cap uses the <b>raw closing price</b> times the share count <b>as it stood at the time</b> (paid-in capital over par, less treasury shares) — not adjusted prices, whose dividend adjustment would understate historical market cap. TTM earnings sum the last four reported quarters of net profit attributable to parent; book value takes the latest reported quarter. The basket holds <b>every stock listed on HOSE at each point in time</b>, including names later delisted, so there is no survivorship bias; the database covers ${u} tickers.`,
+      p3:'Public APIs, no login required:',
+      s1:'Daily and intraday VNINDEX — Vietcap',
+      s2:'Raw closing prices for the whole HOSE board — VNDirect finfo',
+      s3:'Quarterly income statements and balance sheets — VNDirect finfo',
       p4:'End-of-day data rebuilds automatically after each session and the page checks for a newer file every 5 minutes. During trading hours VNINDEX refreshes every 20 seconds and P/E and P/B scale with it — earnings and book value do not change intraday, so this is exact.',
-      l1:'The basket holds only <b>currently</b> listed tickers, so delisted names are missing and older figures drift.',
-      l2:'Market cap uses dividend-adjusted prices, which understates nominal market cap further back.',
-      l3:"Vietcap's statements start at Q1 2018, so the valuation series begins in February 2019.",
+      l1:'Market cap is fixed every fifth session and interpolated by VNINDEX in between — valid because VNINDEX is itself total market cap over a divisor that only moves on new listings and share issues.',
+      l2:'Filing dates are only recorded accurately from 2020. For older quarters each company is assigned its own typical filing lag learned from the later period, so earnings-season transitions there are estimates.',
+      l3:'The raw price series reaches back only to early 2013, so P/E and P/B start there even though VNINDEX goes back to 2004.',
       l4:"Expect a few percent difference from FiinTrade's published figures (different basket and free-float treatment)."
     },
-    noVal: d => `Price only before ${d} — P/E and P/B start there (Vietcap's statements go back only to Q1 2018).`,
+    noVal: d => `Price only before ${d} — P/E and P/B start there, because the raw price series behind market cap only reaches back to early 2013.`,
     toastNew:'New data available — reloaded'
   }
 };

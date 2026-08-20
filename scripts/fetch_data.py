@@ -1,29 +1,35 @@
 #!/usr/bin/env python3
 """
-Dựng bộ dữ liệu VNINDEX + P/E + P/B toàn thị trường (HOSE).
-
-Nguồn — API công khai của Vietcap, không cần đăng nhập:
-  1. Giá theo ngày (VNINDEX và từng mã)
-     POST https://trading.vietcap.com.vn/api/chart/OHLCChart/gap
-  2. Danh sách mã niêm yết
-     GET  https://trading.vietcap.com.vn/api/price/symbols/getAll
-  3. BCTC theo quý, có publicDate
-     GET  https://iq.vietcap.com.vn/api/iq-insight-service/v1/company/{sym}
-          /financial-statement?section=INCOME_STATEMENT | BALANCE_SHEET
-  4. Số cổ phiếu đang lưu hành
-     GET  https://iq.vietcap.com.vn/api/iq-insight-service/v1/company/{sym}/statistics-financial
-
-Phương pháp tổng hợp (aggregate — cùng họ FiinTrade / Bloomberg):
+Dựng bộ dữ liệu VNINDEX + P/E + P/B toàn thị trường HOSE.
 
     P/E(t) = Σ VonHoa_i(t) / Σ LoiNhuanTTM_i(t)
     P/B(t) = Σ VonHoa_i(t) / Σ VonChuSoHuu_i(t)
 
-  · VonHoa_i(t)       = giá đóng cửa điều chỉnh(t) × số CP đang lưu hành
-  · LoiNhuanTTM_i(t)  = tổng LNST cổ đông công ty mẹ (isa22) 4 quý gần nhất ĐÃ CÔNG BỐ
-  · VonChuSoHuu_i(t)  = vốn chủ sở hữu công ty mẹ (bsa78 − bsa210) kỳ gần nhất ĐÃ CÔNG BỐ
+Nguồn:
+  · VNINDEX theo ngày (từ 2004) — Vietcap
+      POST trading.vietcap.com.vn/api/chart/OHLCChart/gap
+  · Giá đóng cửa GỐC toàn sàn HOSE (từ 2013) — VNDirect finfo
+      GET api-finfo.vndirect.com.vn/v4/stock_prices?q=floor:HOSE~date:...
+  · BCTC quý toàn thị trường — VNDirect finfo
+      GET api-finfo.vndirect.com.vn/v4/financial_statements?q=itemCode:...
 
-Cả hai neo theo publicDate của TỪNG doanh nghiệp, nên chỉ số trượt dần suốt mùa
-báo cáo thay vì nhảy bậc một lần — giống cách FiinTrade dựng biểu đồ định giá.
+Vì sao dùng VNDirect thay vì Vietcap cho phần định giá:
+
+  1. BCTC của Vietcap chỉ lùi tới quý 1/2018; VNDirect có giá gốc từ 2013 nên
+     chuỗi định giá dài thêm sáu năm.
+  2. Vietcap chỉ có giá ĐÃ ĐIỀU CHỈNH, mà phép điều chỉnh trừ cả cổ tức tiền
+     mặt — lấy "giá điều chỉnh × số cổ phiếu hiện tại" thì vốn hoá quá khứ
+     THẤP hơn thực tế, càng lùi xa càng lệch. VNDirect trả cả giá gốc lẫn giá
+     điều chỉnh, nên ghép được "giá gốc × số cổ phiếu tại thời điểm đó" — đúng
+     định nghĩa vốn hoá.
+  3. Truy vấn `floor:HOSE` trả về mọi mã ĐANG niêm yết tại ngày đó, kể cả mã
+     về sau huỷ niêm yết. Rổ vì thế đúng thành phần từng thời kỳ, hết
+     survivorship bias.
+
+Vốn hoá chốt theo mốc mỗi năm phiên rồi nội suy theo ngày bằng chính VNINDEX:
+chỉ số này là tổng vốn hoá chia cho một số chia chỉ đổi khi có niêm yết mới
+hoặc phát hành thêm, nên giữa hai mốc thì tỉ lệ VNINDEX chính là tỉ lệ vốn hoá.
+Lợi nhuận và vốn chủ sở hữu tính lại theo TỪNG NGÀY để mùa báo cáo không bị trễ.
 """
 
 import bisect
@@ -35,39 +41,45 @@ import json
 import os
 import sys
 import time
+import urllib.parse
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_DIR = os.path.join(ROOT, "site", "data")
 CACHE_DIR = os.path.join(ROOT, "data", "cache")
 
-IQ = "https://iq.vietcap.com.vn/api/iq-insight-service"
+VND = "https://api-finfo.vndirect.com.vn/v4"
 TRADING = "https://trading.vietcap.com.vn/api"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
 
-# Giá VNINDEX lấy toàn bộ lịch sử (từ 2004). Giá từng mã chỉ cần từ 2017 vì
-# BCTC của Vietcap bắt đầu ở quý 1/2018 — trước đó không tính được định giá.
-INDEX_START = "2000-01-01"
-STOCK_START = "2017-06-01"
-CACHE_TTL = 12 * 3600
-PRICE_BATCH = 20
-WORKERS = 8
-# Một phiên chỉ có P/E, P/B khi nhóm đã công bố BCTC chiếm đủ lớn trong tổng vốn
-# hoá của rổ. Đếm theo vốn hoá chứ không theo số mã: vài chục mã nhỏ chưa nộp
-# báo cáo gần như không ảnh hưởng, còn thiếu một mã đầu ngành thì lệch nhiều.
-MIN_COVERAGE = 0.85
+INDEX_START = "2000-01-01"      # VNINDEX: lấy hết những gì Vietcap có
+PRICE_START = "2013-01-01"      # giá gốc của VNDirect bắt đầu từ đây
+ANCHOR_EVERY = 5                # mốc vốn hoá: mỗi 5 phiên (~1 tuần)
+WORKERS = 6
+CACHE_TTL_FS = 30 * 86400
+CACHE_TTL_PX = 90 * 86400
+MIN_COVERAGE = 0.85             # tỉ lệ vốn hoá đã có BCTC, tối thiểu
 MIN_TICKERS = 100
 
+ITEMS = {
+    "npat":     23000,          # Lợi nhuận sau thuế của Công ty mẹ
+    "equity":   14000,          # Vốn chủ sở hữu
+    "minority": 14240,          # Lợi ích cổ đông không kiểm soát
+    "capital":  14110,          # Vốn góp -> số cổ phiếu = vốn góp / mệnh giá
+    "treasury": 14140,          # Cổ phiếu quỹ
+}
+PAR_VALUE = 10_000              # mệnh giá cổ phiếu Việt Nam
 
-def http_json(url, payload=None, tries=4, timeout=60):
+
+def http_json(url, payload=None, tries=4, timeout=90):
     body = json.dumps(payload).encode() if payload is not None else None
     headers = {"User-Agent": UA, "Accept": "application/json",
-               "Accept-Encoding": "gzip", "Referer": "https://iq.vietcap.com.vn/"}
+               "Accept-Encoding": "gzip", "Referer": "https://dstock.vndirect.com.vn/"}
     if body is not None:
         headers["Content-Type"] = "application/json"
     last = None
-    for attempt in range(tries):
+    for k in range(tries):
         try:
             req = urllib.request.Request(url, data=body, headers=headers)
             with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -77,151 +89,168 @@ def http_json(url, payload=None, tries=4, timeout=60):
                 return json.loads(raw.decode("utf-8"))
         except Exception as e:                       # noqa: BLE001
             last = e
-            time.sleep(0.5 * (attempt + 1))
+            time.sleep(0.6 * (k + 1))
     raise RuntimeError(f"{url} thất bại: {last}")
 
 
-def cached(name, ttl=CACHE_TTL):
-    """Cache kết quả theo mã ra file JSON."""
-    def wrap(fn):
-        def inner(key):
-            path = os.path.join(CACHE_DIR, f"{name}_{key}.json")
-            if os.path.exists(path) and time.time() - os.path.getmtime(path) < ttl:
-                try:
-                    with open(path) as f:
-                        return key, json.load(f)
-                except Exception:                    # noqa: BLE001
-                    pass
-            try:
-                val = fn(key)
-            except Exception:                        # noqa: BLE001
-                val = None
-            if val is not None:
-                with open(path, "w") as f:
-                    json.dump(val, f)
-            return key, val
-        return inner
-    return wrap
-
-
-# --------------------------------------------------------------- giá ---
-
-def fetch_prices(symbols, start):
-    """{sym: {ngày: giá đóng cửa điều chỉnh}}"""
-    frm = int(dt.datetime.fromisoformat(start)
-              .replace(tzinfo=dt.timezone.utc).timestamp())
-    to = int(time.time()) + 86400
-    result = {}
-    for i in range(0, len(symbols), PRICE_BATCH):
-        chunk = symbols[i:i + PRICE_BATCH]
+def cached(prefix, fn, key, ttl):
+    path = os.path.join(CACHE_DIR, f"{prefix}_{key}.json")
+    if os.path.exists(path) and time.time() - os.path.getmtime(path) < ttl:
         try:
-            res = http_json(f"{TRADING}/chart/OHLCChart/gap",
-                            {"timeFrame": "ONE_DAY", "symbols": chunk,
-                             "from": frm, "to": to})
+            with open(path) as f:
+                return json.load(f)
         except Exception:                            # noqa: BLE001
-            continue
-        for e in res or []:
-            sym = e.get("symbol")
-            if not sym or not e.get("t"):
-                continue
-            ser = {}
-            for ts, c in zip(e["t"], e["c"]):
-                day = dt.datetime.fromtimestamp(int(ts), dt.timezone.utc).date().isoformat()
-                ser[day] = float(c)
-            result[sym] = ser
+            pass
+    val = fn(key)
+    with open(path, "w") as f:
+        json.dump(val, f)
+    return val
+
+
+# --------------------------------------------------------------- VNINDEX ---
+
+def fetch_vnindex():
+    frm = int(dt.datetime.fromisoformat(INDEX_START)
+              .replace(tzinfo=dt.timezone.utc).timestamp())
+    d = http_json(f"{TRADING}/chart/OHLCChart/gap",
+                  {"timeFrame": "ONE_DAY", "symbols": ["VNINDEX"],
+                   "from": frm, "to": int(time.time()) + 86400})[0]
+    result = {}
+    for ts, c in zip(d["t"], d["c"]):
+        day = dt.datetime.fromtimestamp(int(ts), dt.timezone.utc).date().isoformat()
+        result[day] = float(c)
     return result
 
 
-def fetch_symbols():
-    res = http_json(f"{TRADING}/price/symbols/getAll")
-    items = res.get("data") if isinstance(res, dict) else res
-    return sorted({
-        (it.get("symbol") or "").strip().upper()
-        for it in (items or [])
-        if (it.get("board") or "").upper() in ("HSX", "HOSE")
-        and (it.get("type") or "").upper() == "STOCK"
-        and it.get("symbol")
-    })
+# ------------------------------------------------------------------ giá ---
+
+def _snapshot(day):
+    """Giá đóng cửa gốc của mọi cổ phiếu đang niêm yết HOSE trong ngày."""
+    q = urllib.parse.quote(f"floor:HOSE~date:{day}", safe=":~")
+    res = http_json(f"{VND}/stock_prices?q={q}&size=5000")
+    return {r["code"]: float(r["close"]) * 1000
+            for r in (res.get("data") or [])
+            if r.get("close") and r.get("type") == "STOCK"}
 
 
-# ------------------------------------------------------------- BCTC ---
-
-@cached("is")
-def fetch_income(sym):
-    """LNST cổ đông công ty mẹ (isa22) theo quý."""
-    res = http_json(f"{IQ}/v1/company/{sym}/financial-statement?section=INCOME_STATEMENT")
-    rows = []
-    for r in ((res.get("data") or {}).get("quarters")) or []:
-        y, q, val, pub = (r.get("yearReport"), r.get("lengthReport"),
-                          r.get("isa22"), r.get("publicDate"))
-        if not y or not q or val is None or not pub:
-            continue
-        rows.append({"y": int(y), "q": int(q), "v": float(val), "pub": pub[:10]})
-    rows.sort(key=lambda r: (r["y"], r["q"]))
-    return rows
+def fetch_snapshot(day):
+    return cached("px", _snapshot, day, CACHE_TTL_PX)
 
 
-@cached("bs")
-def fetch_balance(sym):
-    """Vốn chủ sở hữu của cổ đông công ty mẹ = bsa78 − bsa210, theo quý."""
-    res = http_json(f"{IQ}/v1/company/{sym}/financial-statement?section=BALANCE_SHEET")
-    rows = []
-    for r in ((res.get("data") or {}).get("quarters")) or []:
-        y, q, total, pub = (r.get("yearReport"), r.get("lengthReport"),
-                            r.get("bsa78"), r.get("publicDate"))
-        if not y or not q or total is None or not pub:
-            continue
-        rows.append({"y": int(y), "q": int(q),
-                     "v": float(total) - float(r.get("bsa210") or 0),
-                     "pub": pub[:10]})
-    rows.sort(key=lambda r: (r["y"], r["q"]))
-    return rows
+# ----------------------------------------------------------------- BCTC ---
+
+def _item_quarter(key):
+    """key = 'npat|2015-12-31' -> {mã: [giá trị, ngày ghi nhận]}"""
+    name, fiscal = key.split("|")
+    q = urllib.parse.quote(
+        f"itemCode:{ITEMS[name]}~reportType:QUARTER~fiscalDate:{fiscal}", safe=":~")
+    res = http_json(f"{VND}/financial_statements?q={q}&size=5000")
+    result = {}
+    for r in res.get("data") or []:
+        v = r.get("numericValue")
+        if v is not None:
+            result[r["code"]] = [float(v), (r.get("createdDate") or "")[:10]]
+    return result
 
 
-@cached("sh")
-def fetch_shares(sym):
-    res = http_json(f"{IQ}/v1/company/{sym}/statistics-financial")
-    rows = [r for r in (res.get("data") or []) if r.get("ratioType") == "RATIO_TTM"]
-    rows.sort(key=lambda r: (r.get("yearReport") or 0, r.get("quarter") or 0))
-    for r in reversed(rows):
-        n = r.get("numberOfSharesMktCap")
-        if n:
-            return {"shares": float(n), "as_of": f"{r['yearReport']}-Q{r['quarter']}"}
-    return None
+def fetch_item_quarter(name, fiscal):
+    return cached("fs", _item_quarter, f"{name}|{fiscal}", CACHE_TTL_FS)
 
 
-def ttm_timeline(rows):
-    """[(ngày công bố, tổng 4 quý gần nhất)] — cho chỉ tiêu luỹ kế như lợi nhuận.
+DEFAULT_LAG = {False: 45, True: 90}      # quý thường / quý 4
 
-    Neo vào publicDate của quý MỚI NHẤT trong cửa sổ, không phải max của cả bốn.
-    Vietcap ghi lại publicDate khi nhập/điều chỉnh số cũ — ví dụ BID ghi quý
-    1/2018 là 2019-08-21 — nên lấy max sẽ đẩy mốc TTM đầu tiên muộn hơn cả năm.
-    Vẫn ép chuỗi không lùi để một ngày lệch không làm mốc sau sớm hơn mốc trước.
+
+def trusted_lag(fiscal, created):
+    """Số ngày từ ngày chốt sổ tới ngày ghi nhận, None nếu không đáng tin.
+
+    VNDirect nạp gộp toàn bộ dữ liệu cũ vào tháng 12/2019 nên `createdDate` của
+    mọi kỳ trước đó đều là 2019-12 chứ không phải ngày nộp thật.
     """
-    out, floor = [], ""
-    for i in range(3, len(rows)):
-        win = rows[i - 3:i + 1]
-        seq = [w["y"] * 4 + (w["q"] - 1) for w in win]
-        if seq != list(range(seq[0], seq[0] + 4)):   # phải là 4 quý liên tiếp
-            continue
-        floor = max(win[-1]["pub"], floor)
-        out.append((floor, sum(w["v"] for w in win)))
-    merged = {}
-    for pub, v in out:
-        merged[pub] = v                              # cùng ngày thì giữ bản mới nhất
-    return sorted(merged.items())
+    if not created or created < fiscal:
+        return None
+    lag = (dt.date.fromisoformat(created) - dt.date.fromisoformat(fiscal)).days
+    return lag if 3 <= lag <= 180 else None
 
 
-def point_timeline(rows):
-    """[(ngày công bố, giá trị kỳ gần nhất)] — cho chỉ tiêu thời điểm như vốn chủ sở hữu."""
+def build_lag_model(fin):
+    """{mã: {quý-4?: độ trễ nộp điển hình}} học từ giai đoạn createdDate đáng tin.
+
+    Áp độ trễ riêng của từng doanh nghiệp cho các kỳ cũ tốt hơn nhiều so với
+    gán chung một mốc: nếu cả thị trường "công bố" cùng ngày thì chuỗi P/E nhảy
+    bậc 6–9% mỗi quý, trong khi thực tế các công ty nộp rải ra vài tuần.
+    """
+    per, glob = {}, {False: [], True: []}
+    for fiscal, by_code in fin["npat"].items():
+        q4 = fiscal.endswith("-12-31")
+        for code, (_v, created) in by_code.items():
+            lag = trusted_lag(fiscal, created)
+            if lag is None:
+                continue
+            per.setdefault(code, {False: [], True: []})[q4].append(lag)
+            glob[q4].append(lag)
+
+    def med(xs, fallback):
+        return sorted(xs)[len(xs) // 2] if xs else fallback
+
+    gmed = {k: med(v, DEFAULT_LAG[k]) for k, v in glob.items()}
+    model = {c: {k: med(v, gmed[k]) for k, v in d.items()} for c, d in per.items()}
+    model["*"] = gmed
+    return model
+
+
+LAGS = {"*": DEFAULT_LAG}
+
+
+def publish_date(fiscal, created, code):
+    """Ngày số liệu của một quý coi như đã ra thị trường."""
+    lag = trusted_lag(fiscal, created)
+    if lag is None:
+        q4 = fiscal.endswith("-12-31")
+        lag = (LAGS.get(code) or LAGS["*"])[q4]
+    return (dt.date.fromisoformat(fiscal) + dt.timedelta(days=lag)).isoformat()
+
+
+def quarter_ends(from_year, until):
+    out = []
+    for y in range(from_year, until.year + 1):
+        for m, d in ((3, 31), (6, 30), (9, 30), (12, 31)):
+            q = dt.date(y, m, d)
+            if q <= until:
+                out.append(q.isoformat())
+    return out
+
+
+def ttm_timeline(by_quarter, code):
+    """[(ngày công bố, tổng 4 quý liên tiếp)] — cho chỉ tiêu luỹ kế."""
+    seq = sorted((q, by_quarter[q][code]) for q in by_quarter if code in by_quarter[q])
     merged, floor = {}, ""
-    for r in rows:
-        floor = max(r["pub"], floor)                 # giữ chuỗi không lùi
-        merged[floor] = r["v"]
+    for i in range(3, len(seq)):
+        win = seq[i - 3:i + 1]
+        months = [int(q[:4]) * 12 + int(q[5:7]) for q, _ in win]
+        if months != list(range(months[0], months[0] + 12, 3)):
+            continue                                  # phải là 4 quý liên tiếp
+        floor = max(publish_date(win[-1][0], win[-1][1][1], code), floor)
+        merged[floor] = sum(v[0] for _, v in win)
     return sorted(merged.items())
 
 
-# ------------------------------------------------------------- dựng ---
+def point_timeline(by_quarter, code):
+    """[(ngày công bố, giá trị kỳ gần nhất)] — cho chỉ tiêu thời điểm."""
+    seq = sorted((q, by_quarter[q][code]) for q in by_quarter if code in by_quarter[q])
+    merged, floor = {}, ""
+    for q, (v, pub) in seq:
+        floor = max(publish_date(q, pub, code), floor)
+        merged[floor] = v
+    return sorted(merged.items())
+
+
+def at(timeline, day):
+    """Giá trị có hiệu lực tại ngày `day`, None nếu chưa công bố gì."""
+    i = bisect.bisect_right([x[0] for x in timeline], day) - 1
+    return timeline[i][1] if i >= 0 else None
+
+
+# ----------------------------------------------------------------- dựng ---
 
 def build():
     os.makedirs(CACHE_DIR, exist_ok=True)
@@ -229,114 +258,147 @@ def build():
     t0 = time.time()
 
     print("· VNINDEX ...", flush=True)
-    vni = fetch_prices(["VNINDEX"], INDEX_START)["VNINDEX"]
-    trading_days = sorted(vni)
-    print(f"  {len(trading_days)} phiên {trading_days[0]} → {trading_days[-1]}")
+    vni = fetch_vnindex()
+    days = sorted(vni)
+    print(f"  {len(days)} phiên {days[0]} → {days[-1]}")
 
-    syms = fetch_symbols()
-    print(f"· {len(syms)} cổ phiếu HOSE")
+    trading = [d for d in days if d >= PRICE_START]
+    anchors = trading[::ANCHOR_EVERY]
+    if anchors[-1] != trading[-1]:
+        anchors.append(trading[-1])
+    print(f"· {len(anchors)} mốc vốn hoá (mỗi {ANCHOR_EVERY} phiên)")
 
-    print("· Tải KQKD + CĐKT + số cổ phiếu ...", flush=True)
-    income, balance, shares = {}, {}, {}
-    jobs = ([("is", x) for x in syms] + [("bs", x) for x in syms]
-            + [("sh", x) for x in syms])
-    fns = {"is": fetch_income, "bs": fetch_balance, "sh": fetch_shares}
-    bins = {"is": income, "bs": balance, "sh": shares}
+    print("· Tải BCTC quý toàn thị trường ...", flush=True)
+    quarters = quarter_ends(int(PRICE_START[:4]) - 1, dt.date.today())
+    fin = {name: {} for name in ITEMS}
+    jobs = [(n, q) for n in ITEMS for q in quarters]
     done = 0
     with cf.ThreadPoolExecutor(max_workers=WORKERS) as ex:
-        futs = {ex.submit(fns[kind], sym): kind for kind, sym in jobs}
+        futs = {ex.submit(fetch_item_quarter, n, q): (n, q) for n, q in jobs}
         for fu in cf.as_completed(futs):
-            kind = futs[fu]
-            key, val = fu.result()
+            n, q = futs[fu]
+            fin[n][q] = fu.result()
             done += 1
-            if done % 200 == 0:
+            if done % 80 == 0:
                 print(f"  {done}/{len(jobs)}", flush=True)
-            if val:
-                bins[kind][key] = val
-    print(f"  KQKD {len(income)} · CĐKT {len(balance)} · số CP {len(shares)}")
+    codes = {c for q in fin["npat"].values() for c in q}
+    print(f"  {len(quarters)} quý · {len(codes)} mã có số liệu")
 
-    print("· Tải giá từng mã ...", flush=True)
-    prices = fetch_prices(syms, STOCK_START)
-    print(f"  {len(prices)} mã có giá")
+    LAGS.clear()
+    LAGS.update(build_lag_model(fin))
+    g = LAGS["*"]
+    print(f"  độ trễ nộp báo cáo: học được cho {len(LAGS)-1} mã · "
+          f"trung vị chung {g[False]} ngày (quý 4: {g[True]})")
 
-    comp = {}
-    for sym in syms:
-        if sym not in prices or sym not in shares:
+    print("· Dựng chuỗi theo mã ...", flush=True)
+    tl = {}
+    for c in codes:
+        ttm = ttm_timeline(fin["npat"], c)
+        cap = point_timeline(fin["capital"], c)
+        if not ttm or not cap:
             continue
-        tl_e = ttm_timeline(income.get(sym) or [])
-        tl_b = point_timeline(balance.get(sym) or [])
-        if not tl_e:
-            continue
-        comp[sym] = {
-            "sh": shares[sym]["shares"],
-            "epub": [x[0] for x in tl_e], "eval": [x[1] for x in tl_e],
-            "bpub": [x[0] for x in tl_b], "bval": [x[1] for x in tl_b],
-            "pdays": sorted(prices[sym]), "pmap": prices[sym],
-        }
-    print(f"· Rổ tính toán: {len(comp)} mã")
+        tl[c] = {"ttm": ttm, "cap": cap,
+                 "tre": point_timeline(fin["treasury"], c),
+                 "eq": point_timeline(fin["equity"], c),
+                 "mi": point_timeline(fin["minority"], c)}
+    print(f"  {len(tl)} mã đủ lợi nhuận và vốn góp")
 
-    series, contrib = [], []
-    first_val = None
-    for day in trading_days:
-        row = {"d": day, "i": round(vni[day], 2)}
+    print("· Tải giá gốc theo mốc ...", flush=True)
+    snaps, done = {}, 0
+    with cf.ThreadPoolExecutor(max_workers=WORKERS) as ex:
+        futs = {ex.submit(fetch_snapshot, d): d for d in anchors}
+        for fu in cf.as_completed(futs):
+            snaps[futs[fu]] = fu.result()
+            done += 1
+            if done % 150 == 0:
+                print(f"  {done}/{len(anchors)}", flush=True)
 
-        mc_all = mc_e = earn = mc_b = book = 0.0
-        n = 0
-        for c in comp.values():
-            i = bisect.bisect_right(c["pdays"], day) - 1
-            if i < 0:
+    # Mỗi mốc chốt THÀNH PHẦN rổ và vốn hoá từng mã tại mốc đó.
+    members = {}
+    for d in anchors:
+        lst = []
+        for code, price in (snaps.get(d) or {}).items():
+            t = tl.get(code)
+            if not t:
                 continue
-            mc = c["pmap"][c["pdays"][i]] * c["sh"]
-            mc_all += mc
-            je = bisect.bisect_right(c["epub"], day) - 1
-            if je >= 0:
-                mc_e += mc
-                earn += c["eval"][je]
-                n += 1
-            jb = bisect.bisect_right(c["bpub"], day) - 1
-            if jb >= 0 and c["bval"][jb] > 0:
-                mc_b += mc
-                book += c["bval"][jb]
+            cap = at(t["cap"], d)
+            if not cap:
+                continue
+            shares = (cap - abs(at(t["tre"], d) or 0)) / PAR_VALUE
+            if shares > 0:
+                lst.append((code, price * shares))
+        members[d] = lst
+    print(f"  trung bình {sum(len(v) for v in members.values())//max(1, len(members))} mã/rổ")
 
-        covered = mc_all > 0 and n >= MIN_TICKERS
-        if covered and earn > 0 and mc_e / mc_all >= MIN_COVERAGE:
-            row["pe"] = round(mc_e / earn, 3)
-            contrib.append(n)
-            first_val = first_val or day
-        if covered and book > 0 and mc_b / mc_all >= MIN_COVERAGE:
-            row["pb"] = round(mc_b / book, 4)
+    print("· Tổng hợp theo ngày ...", flush=True)
+    series, contrib = [], []
+    first_pe = first_pb = None
+    for day in days:
+        row = {"d": day, "i": round(vni[day], 2)}
+        k = bisect.bisect_right(anchors, day) - 1
+        if k >= 0:
+            a = anchors[k]
+            base = vni.get(a)
+            if base:
+                # giá chốt tại mốc, trượt theo VNINDEX tới ngày đang xét;
+                # lợi nhuận và vốn chủ sở hữu thì đọc đúng theo ngày.
+                scale = vni[day] / base
+                mc_all = mc_e = earn = mc_b = book = 0.0
+                n = 0
+                for code, mc0 in members[a]:
+                    mc = mc0 * scale
+                    mc_all += mc
+                    t = tl[code]
+                    e = at(t["ttm"], day)
+                    if e is not None:
+                        mc_e += mc
+                        earn += e
+                        n += 1
+                    eq = at(t["eq"], day)
+                    if eq is not None:
+                        b = eq - (at(t["mi"], day) or 0)
+                        if b > 0:
+                            mc_b += mc
+                            book += b
+                if mc_all > 0 and n >= MIN_TICKERS:
+                    if earn > 0 and mc_e / mc_all >= MIN_COVERAGE:
+                        row["pe"] = round(mc_e / earn, 3)
+                        contrib.append(n)
+                        first_pe = first_pe or day
+                    if book > 0 and mc_b / mc_all >= MIN_COVERAGE:
+                        row["pb"] = round(mc_b / book, 4)
+                        first_pb = first_pb or day
         series.append(row)
 
-    out = {
+    payload = {
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "method": ("P/E = sum(VonHoa)/sum(LNST TTM cong ty me da cong bo); "
-                   "P/B = sum(VonHoa)/sum(Von chu so huu cong ty me da cong bo). "
-                   "Von hoa = gia dieu chinh x so CP luu hanh; ca hai neo theo "
-                   "publicDate cua tung doanh nghiep."),
+                   "P/B = sum(VonHoa)/sum(Von chu so huu cong ty me). VonHoa = "
+                   "gia dong cua GOC x so co phieu tai thoi diem do (von gop chia "
+                   "menh gia, tru co phieu quy). Ro gom moi ma dang niem yet HOSE "
+                   "tai tung thoi diem, ke ca ma ve sau huy niem yet."),
         "sources": {
-            "price": "trading.vietcap.com.vn/api/chart/OHLCChart/gap",
-            "symbols": "trading.vietcap.com.vn/api/price/symbols/getAll",
-            "income_statement": "iq.vietcap.com.vn/.../financial-statement?section=INCOME_STATEMENT",
-            "balance_sheet": "iq.vietcap.com.vn/.../financial-statement?section=BALANCE_SHEET",
-            "shares": "iq.vietcap.com.vn/.../statistics-financial",
+            "index": "trading.vietcap.com.vn/api/chart/OHLCChart/gap",
+            "prices": "api-finfo.vndirect.com.vn/v4/stock_prices?q=floor:HOSE",
+            "financials": "api-finfo.vndirect.com.vn/v4/financial_statements",
         },
-        "universe_size": len(comp),
+        "universe_size": len(tl),
         "avg_contributors": round(sum(contrib) / len(contrib)) if contrib else 0,
         "index_from": series[0]["d"] if series else None,
-        "valuation_from": first_val,
+        "valuation_from": first_pe,
         "series": series,
     }
     path = os.path.join(OUT_DIR, "vnindex_pe.json")
     tmp = path + ".tmp"
     with open(tmp, "w") as f:
-        json.dump(out, f, separators=(",", ":"))
-    os.replace(tmp, path)        # ghi nguyên tử, tránh trang đọc phải file dở
+        json.dump(payload, f, separators=(",", ":"))
+    os.replace(tmp, path)
     print(f"· Ghi {path} ({os.path.getsize(path)/1024:.0f} KB, {len(series)} phiên, "
           f"{time.time()-t0:.0f}s)")
-    print(f"  VNINDEX từ {series[0]['d']} · định giá từ {first_val}")
+    print(f"  VNINDEX từ {series[0]['d']} · P/E từ {first_pe} · P/B từ {first_pb}")
     for r in (series[0], series[-1]):
         print(f"  {r['d']}: VNINDEX={r['i']}  P/E={r.get('pe','—')}  P/B={r.get('pb','—')}")
-    return out
+    return payload
 
 
 if __name__ == "__main__":

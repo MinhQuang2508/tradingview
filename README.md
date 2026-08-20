@@ -6,7 +6,7 @@ Terminal web hai bộ dữ liệu về thị trường Việt Nam.
 
 | Tab | Nội dung |
 |---|---|
-| **Định giá** | VNINDEX từ **2004** (5.632 phiên) cùng **P/E** và **P/B** toàn thị trường HOSE từ **2019**, tính từ báo cáo tài chính của từng doanh nghiệp chứ không lấy lại số của bên thứ ba |
+| **Định giá** | VNINDEX từ **2004** (5.632 phiên) cùng **P/E** và **P/B** toàn thị trường HOSE từ **2013** (3.380 phiên), tính từ báo cáo tài chính của từng doanh nghiệp chứ không lấy lại số của bên thứ ba |
 | **Tỷ giá** | **USD/VND** từ **2003** (5.222 phiên) đặt cạnh **Dollar Index** và **USD/CNY**, kèm giá mua/bán Vietcombank |
 
 | | |
@@ -51,14 +51,16 @@ liên ngân hàng** và **OMO / tín phiếu** chưa lên được biểu đồ.
 
 ## Nguồn dữ liệu
 
-Tab Định giá — API công khai của Vietcap, không cần đăng nhập:
+Tab Định giá — API công khai, không cần đăng nhập:
 
 | Dữ liệu | Endpoint |
 |---|---|
-| Giá theo ngày và theo phút | `POST trading.vietcap.com.vn/api/chart/OHLCChart/gap` |
-| Danh sách mã niêm yết | `GET trading.vietcap.com.vn/api/price/symbols/getAll` |
-| KQKD & CĐKT theo quý (kèm `publicDate`) | `GET iq.vietcap.com.vn/api/iq-insight-service/v1/company/{sym}/financial-statement?section=…` |
-| Số cổ phiếu lưu hành | `GET iq.vietcap.com.vn/api/iq-insight-service/v1/company/{sym}/statistics-financial` |
+| VNINDEX theo ngày và theo phút | `POST trading.vietcap.com.vn/api/chart/OHLCChart/gap` |
+| Giá đóng cửa gốc toàn sàn HOSE | `GET api-finfo.vndirect.com.vn/v4/stock_prices?q=floor:HOSE~date:…` |
+| KQKD & CĐKT theo quý, toàn thị trường | `GET api-finfo.vndirect.com.vn/v4/financial_statements?q=itemCode:…` |
+
+Truy vấn VNDirect không cần lọc theo mã: một lời gọi trả về cả sàn cho một ngày
+hoặc một kỳ báo cáo.
 
 Tab Tỷ giá:
 
@@ -88,6 +90,11 @@ python3 -m http.server -d site 8000
 
 ## Giới hạn đã biết
 
-* **Survivorship bias** — rổ chỉ gồm mã *đang* niêm yết, không có mã đã huỷ niêm yết.
-* Vốn hoá dùng giá điều chỉnh cổ tức nên thấp hơn vốn hoá danh nghĩa ở giai đoạn xa.
+* **Ngày công bố báo cáo chỉ chính xác từ 2020.** VNDirect nạp gộp toàn bộ dữ liệu
+  cũ vào tháng 12/2019 nên `createdDate` của kỳ trước đó không phải ngày nộp thật.
+  Với các kỳ đó, mỗi doanh nghiệp được gán độ trễ nộp điển hình *của chính nó*, học
+  từ giai đoạn sau — nên bước chuyển mùa báo cáo trước 2020 là ước lượng.
+* **Chuỗi giá gốc chỉ lùi tới đầu 2013**, vì vậy P/E và P/B bắt đầu từ đó dù
+  VNINDEX có từ 2004.
+* Vốn hoá chốt mỗi 5 phiên rồi nội suy — sai số nhỏ khi có phát hành thêm giữa hai mốc.
 * Có thể lệch vài phần trăm so với số FiinTrade công bố (khác rổ, khác cách xử lý free-float).
