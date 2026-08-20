@@ -19,7 +19,7 @@ let t = DICT[state.lang];
 
 let DATA = null;          // toàn bộ file JSON
 let ROWS = [];            // series đã tính sẵn % thay đổi
-let live = { on: false, index: null, at: null, fail: 0, disabled: false };
+let live = { on: false, index: null, at: null, fail: 0, disabled: false, probed: false };
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -101,8 +101,10 @@ async function pollLive() {
   // Bản đặt trên host tĩnh (GitHub Pages) không có proxy /live/ohlc — phát hiện
   // một lần rồi tắt hẳn, thay vì báo "mất kết nối" gây hiểu nhầm.
   if (live.disabled) { renderStatus(); return; }
-  // Nghỉ trưa vẫn giữ nguyên giá trị đang có, chỉ dừng gọi API cho đỡ tốn.
-  if (!marketOpen()) {
+  // Lần gọi đầu luôn thử, kể cả ngoài giờ — để biết bản đang chạy có proxy hay
+  // không. Nếu chờ tới phiên mới biết thì suốt buổi tối trang sẽ hiện "đã đóng
+  // phiên" như thể live vẫn hoạt động.
+  if (live.probed && !marketOpen()) {
     if (sessionState() === 'closed') live.on = false;
     renderStatus();
     return;
@@ -116,7 +118,8 @@ async function pollLive() {
                              from: now - 3600, to: now + 60 }),
     });
     if (res.status === 404 || res.status === 405 || res.status === 501) {
-      live.disabled = true; live.on = false; renderStatus(); return;
+      live.disabled = true; live.on = false; live.probed = true;
+      renderStatus(); return;
     }
     if (!res.ok) throw new Error(res.status);
     const arr = await res.json();
@@ -124,10 +127,12 @@ async function pollLive() {
     if (!d?.c?.length) throw new Error('rỗng');
     live.index = +d.c[d.c.length - 1];
     live.at = new Date(+d.t[d.t.length - 1] * 1000);
-    live.on = true;
+    live.on = marketOpen();
+    live.probed = true;
     live.fail = 0;
-    applyLive();
+    if (live.on) applyLive();
   } catch {
+    live.probed = true;
     live.fail++;
     if (live.fail >= 3) live.on = false;
     if (live.fail >= 5) live.disabled = true;   // không có proxy thì thôi hẳn
