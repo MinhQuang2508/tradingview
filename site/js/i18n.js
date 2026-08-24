@@ -4,10 +4,30 @@
 export const DICT = {
   vi: {
     locale: 'vi-VN',
-    ws: { val:'Định giá', fx:'Tỷ giá', ib:'Lãi suất LNH' },
+    ws: { val:'Định giá', fx:'Tỷ giá', ib:'Lãi suất LNH', omo:'Hút/Bơm' },
     wsTip: { val:'VNINDEX cùng P/E và P/B toàn thị trường HOSE',
              fx:'USD/VND đặt cạnh sức mạnh đồng đô la và USD/CNY',
-             ib:'Lãi suất giao dịch VND bình quân trên thị trường liên ngân hàng' },
+             ib:'Lãi suất giao dịch VND bình quân trên thị trường liên ngân hàng',
+             omo:'Tín phiếu và nghiệp vụ thị trường mở của Ngân hàng Nhà nước' },
+    omo: {
+      m: { repoIn:'Bơm OMO', repoBal:'OMO lưu hành', billBal:'Tín phiếu' },
+      metricTip:'Chọn dòng tiền hoặc số dư muốn hiển thị',
+      key: { net:'Bơm/hút ròng', repoIn:'Trúng thầu OMO', repoBal:'OMO lưu hành', billBal:'Tín phiếu lưu hành' },
+      col: { date:'Ngày', net:'Ròng', repoBal:'OMO', billBal:'Tín phiếu' },
+      note: {
+        dual:'Hai chuỗi dùng trục độc lập. Đơn vị là tỷ đồng; số dương ở chuỗi ròng là bơm, số âm là hút.',
+        stack:'Mỗi chuỗi một khung riêng, chung trục thời gian. Đơn vị là tỷ đồng; dương là bơm, âm là hút.',
+        index:'Các chuỗi quy về 100 tại đầu kỳ để so biến động; không thể hiện quy mô tiền tuyệt đối.'
+      },
+      about: {
+        h1:'Cách đọc', h2:'Nguồn dữ liệu', h3:'Lưu ý',
+        p1:'<b>Bơm/hút ròng</b> đã tính cả tiền đáo hạn: số dương là NHNN bơm thanh khoản, số âm là hút. Mua giấy tờ có giá qua OMO bơm tiền; OMO đáo hạn hút tiền. Phát hành tín phiếu hút tiền, còn tín phiếu đáo hạn trả tiền về hệ thống.',
+        p2:'Dữ liệu gốc do Ngân hàng Nhà nước công bố sau phiên đấu thầu, được Dữ Liệu Kinh Tế tổng hợp thành chuỗi ngày. Trang lưu một bản JSON tĩnh để lịch sử vẫn hoạt động khi nguồn tạm gián đoạn.',
+        l1:'Dòng ròng là luồng tiền trong ngày, còn OMO và tín phiếu lưu hành là số dư cuối ngày; không cộng trực tiếp các đường với nhau.',
+        l2:'Ngày không có quan sát được giữ trống, không tự gán bằng 0 và không nội suy.',
+        l3:'Số liệu công khai có thể được nguồn điều chỉnh hồi tố khi lịch đáo hạn hoặc kết quả đấu thầu được cập nhật.'
+      }
+    },
     ib: {
       m: { week1:'1T', week2:'2T', month1:'1TH', month3:'3TH', month6:'6TH', month9:'9TH' },
       metricTip:'Chọn kỳ hạn lãi suất muốn hiển thị',
@@ -106,10 +126,30 @@ export const DICT = {
 
   en: {
     locale: 'en-US',
-    ws: { val:'Valuation', fx:'FX', ib:'Interbank' },
+    ws: { val:'Valuation', fx:'FX', ib:'Interbank', omo:'OMO/Bills' },
     wsTip: { val:'VNINDEX with market P/E and P/B',
              fx:'USD/VND against dollar strength and USD/CNY',
-             ib:'Average VND interbank transaction rates by tenor' },
+             ib:'Average VND interbank transaction rates by tenor',
+             omo:'State Bank open-market operations and bill liquidity absorption' },
+    omo: {
+      m: { repoIn:'OMO injection', repoBal:'OMO outstanding', billBal:'Bills' },
+      metricTip:'Choose the flow or outstanding balance to display',
+      key: { net:'Net injection/withdrawal', repoIn:'OMO awarded', repoBal:'OMO outstanding', billBal:'Bills outstanding' },
+      col: { date:'Date', net:'Net', repoBal:'OMO', billBal:'Bills' },
+      note: {
+        dual:'Two series use independent axes. Unit: VND bn; positive net means injection and negative means withdrawal.',
+        stack:'Each series has its own pane on a shared time axis. Unit: VND bn; positive means injection and negative withdrawal.',
+        index:'Series are rebased to 100 at period start for movement comparison, not absolute liquidity size.'
+      },
+      about: {
+        h1:'How to read', h2:'Data source', h3:'Notes',
+        p1:'<b>Net injection/withdrawal</b> includes maturities: positive values mean the SBV injected liquidity; negative values mean it withdrew liquidity. OMO purchases inject cash and their maturity withdraws it. Bill issuance absorbs cash while bill maturity returns it.',
+        p2:'The underlying figures are published by the State Bank of Vietnam after auctions and aggregated into daily series by Dữ Liệu Kinh Tế. The site stores a static JSON copy so history remains available during source outages.',
+        l1:'Net is a daily flow, whereas OMO and bill outstanding are end-of-day stocks; the lines must not be added directly.',
+        l2:'Dates without observations stay blank; the app never substitutes zero or interpolates.',
+        l3:'Public figures may be revised retrospectively as maturity schedules or auction results are updated.'
+      }
+    },
     ib: {
       m: { week1:'1W', week2:'2W', month1:'1M', month3:'3M', month6:'6M', month9:'9M' },
       metricTip:'Choose interbank tenors to display',

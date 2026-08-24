@@ -1,6 +1,6 @@
-# VNINDEX · P/E · P/B · Tỷ giá
+# VNINDEX · P/E · P/B · Tỷ giá · Thanh khoản
 
-Terminal web hai bộ dữ liệu về thị trường Việt Nam.
+Terminal web theo dõi định giá và thanh khoản thị trường Việt Nam.
 
 **→ https://minhquang2508.github.io/tradingview/**
 
@@ -9,6 +9,7 @@ Terminal web hai bộ dữ liệu về thị trường Việt Nam.
 | **Định giá** | VNINDEX từ **2004**, **P/B** từ **2008** (4.499 phiên), **P/E** từ **2010** (4.010 phiên) — tính từ báo cáo tài chính của từng doanh nghiệp chứ không lấy lại số của bên thứ ba |
 | **Tỷ giá** | **USD/VND** từ **2003** (5.222 phiên) đặt cạnh **Dollar Index** và **USD/CNY**, kèm giá mua/bán Vietcombank |
 | **Lãi suất LNH** | Lãi suất VND bình quân liên ngân hàng: qua đêm, 1–2 tuần và 1–9 tháng; nguồn gốc NHNN |
+| **Hút/Bơm** | Bơm/hút ròng qua OMO và tín phiếu, khối lượng trúng thầu và số dư lưu hành; đơn vị tỷ đồng |
 
 | | |
 |---|---|
@@ -47,8 +48,7 @@ P/B(t) = Σ VốnHoá_i(t) / Σ VốnChủSởHữu_i(t)
 
 Chưa có **tỷ giá trung tâm** của Ngân hàng Nhà nước và **tỷ giá thị trường tự do**:
 đã dò SBV, Vietstock, VNSignal, WiChart, trolyluat, CafeF — nơi có dữ liệu thì
-đều bắt đăng nhập, thu phí hoặc mã hoá payload. Cũng vì lý do đó mà **lãi suất
-liên ngân hàng** và **OMO / tín phiếu** chưa lên được biểu đồ.
+đều bắt đăng nhập, thu phí hoặc mã hoá payload.
 
 ## Nguồn dữ liệu
 
@@ -75,11 +75,16 @@ qua bản chuẩn hoá của Viet Dataverse. Đặt `VIETDATAVERSE_API_KEY` ở 
 máy cập nhật để lấy trọn lịch sử; không có key thì script merge snapshot công
 khai một tháng vào file cũ, nhờ vậy chuỗi vẫn bồi dần mà không lộ secret.
 
+Tab Hút/Bơm lấy kết quả nghiệp vụ thị trường mở do **Ngân hàng Nhà nước Việt
+Nam** công bố, qua bảng tổng hợp công khai của Dữ Liệu Kinh Tế. Chuỗi ròng đã
+tính cả tiền đáo hạn: dương là bơm, âm là hút.
+
 ## Cập nhật
 
 `scripts/fetch_data.py` dựng lại `site/data/vnindex_pe.json`, `scripts/fetch_fx.py`
 dựng `site/data/fx.json`, `scripts/fetch_interbank.py` dựng
-`site/data/interbank.json`. Máy chủ nội bộ chạy `refresh.sh` sau mỗi phiên rồi đẩy
+`site/data/interbank.json`, còn `scripts/fetch_omo.py` dựng `site/data/omo.json`.
+Máy chủ nội bộ chạy `refresh.sh` sau mỗi phiên rồi đẩy
 lên đây; GitHub Actions thấy commit mới sẽ deploy lại Pages. Có thêm một lịch
 chạy dự phòng ngay trên Actions.
 
@@ -93,6 +98,7 @@ origin.
 python3 scripts/fetch_data.py     # VNINDEX + P/E + P/B
 python3 scripts/fetch_fx.py       # USD/VND + DXY + USD/CNY
 python3 scripts/fetch_interbank.py # lãi suất liên ngân hàng SBV
+python3 scripts/fetch_omo.py       # OMO và tín phiếu SBV
 python3 -m http.server -d site 8000
 ```
 

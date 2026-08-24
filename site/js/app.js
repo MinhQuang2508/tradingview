@@ -30,6 +30,13 @@ const WS = {
     metrics: ['month1', 'month3'],
     fromKey: null,
   },
+  omo: {
+    file: 'data/omo.json',
+    primary: 'net',
+    optional: ['repoIn', 'repoBal', 'billBal'],
+    metrics: ['repoIn', 'billBal'],
+    fromKey: null,
+  },
 };
 
 /* ------------------------------------------------------------ trạng thái --- */
@@ -39,18 +46,20 @@ const state = Object.assign({
   ws: 'val', lang: 'vi', theme: 'dark', range: '1y', tab: 'data',
   // Kiểu xem và chỉ tiêu đối chiếu tách riêng cho từng workspace: tỷ giá có ba
   // chuỗi lệch thang nhau hàng nghìn lần nên mặc định phải là xếp tầng.
-  view: { val: 'dual', fx: 'stack', ib: 'stack' },
-  metrics: { val: ['pe'], fx: ['dxy', 'usdcny'], ib: ['month1', 'month3'] },
+  view: { val: 'dual', fx: 'stack', ib: 'stack', omo: 'stack' },
+  metrics: { val: ['pe'], fx: ['dxy', 'usdcny'], ib: ['month1', 'month3'], omo: ['repoIn', 'billBal'] },
 }, JSON.parse(localStorage.getItem(LS) || '{}'));
 // Object.assign chỉ merge tầng ngoài; người dùng cũ chưa có khóa workspace mới.
 state.view.ib ||= 'stack';
 state.metrics.ib ||= ['month1', 'month3'];
+state.view.omo ||= 'stack';
+state.metrics.omo ||= ['repoIn', 'billBal'];
 
 const save = () => localStorage.setItem(LS, JSON.stringify(state));
 let t = DICT[state.lang];
 
-const store = { val: null, fx: null, ib: null }; // dữ liệu thô theo workspace
-const rowsOf = { val: [], fx: [], ib: [] };      // đã tính sẵn mức thay đổi
+const store = { val: null, fx: null, ib: null, omo: null }; // dữ liệu thô theo workspace
+const rowsOf = { val: [], fx: [], ib: [], omo: [] };        // đã tính sẵn mức thay đổi
 let live = { on: false, index: null, at: null, fail: 0, disabled: false, probed: false };
 
 const $ = s => document.querySelector(s);
@@ -125,7 +134,8 @@ async function loadWs(ws, quiet = false) {
   const vcb = new Map((json.vcb || []).map(v => [v.d, v]));
   const keys = ws === 'val' ? ['i', 'pe', 'pb']
     : ws === 'fx' ? ['usdvnd', 'dxy', 'usdcny']
-    : ['overnight', 'week_1', 'week_2', 'month_1', 'month_3', 'month_6', 'month_9'];
+    : ws === 'ib' ? ['overnight', 'week_1', 'week_2', 'month_1', 'month_3', 'month_6', 'month_9']
+    : ['net', 'repo_injection', 'repo_outstanding', 'bill_outstanding'];
 
   rowsOf[ws] = json.series.map((r, k, arr) => {
     const p = arr[k - 1];
@@ -134,7 +144,7 @@ async function loadWs(ws, quiet = false) {
     if (q) { out.vcb_buy = q.buy; out.vcb_sell = q.sell; }
     for (const key of keys) {
       out['d_' + key] = (r[key] == null || p?.[key] == null) ? null
-        : ws === 'ib' ? r[key] - p[key] : (r[key] / p[key] - 1) * 100;
+        : (ws === 'ib' || ws === 'omo') ? r[key] - p[key] : (r[key] / p[key] - 1) * 100;
     }
     return out;
   });
@@ -228,11 +238,11 @@ function renderChrome() {
     `<button type="button" data-v="${k}" title="${t.viewTip[k]}" aria-pressed="${view() === k}">${v}</button>`).join('');
 
   const mLabel = state.ws === 'val' ? { pe: 'PE', pb: 'PB' }
-    : state.ws === 'fx' ? t.fx.m : t.ib.m;
+    : state.ws === 'fx' ? t.fx.m : state.ws === 'ib' ? t.ib.m : t.omo.m;
   $('#metricSeg').innerHTML = cfg().optional.map(k =>
     `<button type="button" data-v="${k}" aria-pressed="${metrics().includes(k)}">${mLabel[k]}</button>`).join('');
   $('#metricSeg').title = state.ws === 'val' ? t.metricTip
-    : state.ws === 'fx' ? t.fx.metricTip : t.ib.metricTip;
+    : state.ws === 'fx' ? t.fx.metricTip : state.ws === 'ib' ? t.ib.metricTip : t.omo.metricTip;
 
   $$('.tab').forEach(b => {
     b.textContent = t.tab[b.dataset.tab];
@@ -261,11 +271,11 @@ function renderLegend() {
     ? { index: t.keyIndex, pe: t.keyPe, pb: t.keyPb }
     : state.ws === 'fx'
       ? { usdvnd: t.fx.keyUsd, dxy: t.fx.keyDxy, usdcny: t.fx.keyCny, vcbsell: t.fx.keyVcb }
-      : t.ib.key;
+      : state.ws === 'ib' ? t.ib.key : t.omo.key;
   $('#legend').innerHTML = names.map(n =>
     `<span class="key"><i style="background:var(${SERIES[n].cssVar})"></i>${label[n]}</span>`).join('');
   const note = state.ws === 'val' ? t.note[view()]
-    : state.ws === 'fx' ? t.fx.note[view()] : t.ib.note[view()];
+    : state.ws === 'fx' ? t.fx.note[view()] : state.ws === 'ib' ? t.ib.note[view()] : t.omo.note[view()];
   const rows = sliceRange();
   const bits = [];
   if (state.ws === 'val' && rows.length) {
@@ -309,6 +319,18 @@ const roDelta = v => {
 function renderReadout(row) {
   if (!row) { $('#readout').innerHTML = ''; return; }
   const rows = sliceRange();
+
+  if (state.ws === 'omo') {
+    const names = [cfg().primary, ...metrics()];
+    $('#readout').innerHTML = roItem(t.roDate, fdate(row.d)) + names.map((name, i) => {
+      const key = SERIES[name].key, delta = row['d_' + key];
+      return `<div class="ro"><span class="ro-k c-s${i + 1}">${t.omo.key[name]}</span>`
+        + `<span class="ro-v num c-s${i + 1}">${fmt(row[key], 0)}</span>`
+        + `<span class="ro-d num ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}">`
+        + `${delta == null ? '—' : `${delta > 0 ? '+' : ''}${fmt(delta, 0)} tỷ`}</span></div>`;
+    }).join('');
+    return;
+  }
 
   if (state.ws === 'ib') {
     const names = [cfg().primary, ...metrics()];
@@ -383,7 +405,12 @@ function renderStats() {
   const last = rows[rows.length - 1], first = rows[0];
   const box = [];
 
-  if (state.ws === 'ib') {
+  if (state.ws === 'omo') {
+    for (const name of [cfg().primary, ...metrics()]) {
+      const key = SERIES[name].key;
+      box.push(statCard(t.omo.key[name], last[key], stats(rows.map(r => r[key])), 0, true));
+    }
+  } else if (state.ws === 'ib') {
     const active = [cfg().primary, ...metrics()];
     for (const name of active) {
       const key = SERIES[name].key;
@@ -414,6 +441,15 @@ function renderStats() {
 
 function renderAbout() {
   const d = DATA();
+  if (state.ws === 'omo') {
+    const a = t.omo.about;
+    $('#pane-about').innerHTML = `<div class="doc">
+      <h4>${a.h1}</h4><p>${a.p1}</p>
+      <h4>${a.h2}</h4><p>${a.p2}</p>
+      <h4>${a.h3}</h4><ul><li>${a.l1}</li><li>${a.l2}</li><li>${a.l3}</li></ul>
+    </div>`;
+    return;
+  }
   if (state.ws === 'ib') {
     const a = t.ib.about;
     $('#pane-about').innerHTML = `<div class="doc">
@@ -451,6 +487,15 @@ function renderAbout() {
 }
 
 function tableColumns() {
+  if (state.ws === 'omo') {
+    const c = t.omo.col;
+    return [
+      { key: 'd', label: c.date, type: 'date' },
+      { key: 'net', label: c.net, digits: 0 },
+      { key: 'repo_outstanding', label: c.repoBal, digits: 0 },
+      { key: 'bill_outstanding', label: c.billBal, digits: 0 },
+    ];
+  }
   if (state.ws === 'ib') {
     const c = t.ib.col;
     return [

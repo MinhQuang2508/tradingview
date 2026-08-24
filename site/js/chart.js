@@ -25,6 +25,11 @@ export const SERIES = {
   month3:   { key:'month_3',  cssVar:'--s5', digits:2 },
   month6:   { key:'month_6',  cssVar:'--s6', digits:2 },
   month9:   { key:'month_9',  cssVar:'--s7', digits:2 },
+  // workspace "nghiệp vụ thị trường mở" (tỷ đồng)
+  net:      { key:'net',             cssVar:'--s1', digits:0 },
+  repoIn:   { key:'repo_injection',  cssVar:'--s2', digits:0 },
+  repoBal:  { key:'repo_outstanding',cssVar:'--s3', digits:0 },
+  billBal:  { key:'bill_outstanding',cssVar:'--s4', digits:0 },
 };
 
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
