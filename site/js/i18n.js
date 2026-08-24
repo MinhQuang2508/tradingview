@@ -4,9 +4,30 @@
 export const DICT = {
   vi: {
     locale: 'vi-VN',
-    ws: { val:'Định giá', fx:'Tỷ giá' },
+    ws: { val:'Định giá', fx:'Tỷ giá', ib:'Lãi suất LNH' },
     wsTip: { val:'VNINDEX cùng P/E và P/B toàn thị trường HOSE',
-             fx:'USD/VND đặt cạnh sức mạnh đồng đô la và USD/CNY' },
+             fx:'USD/VND đặt cạnh sức mạnh đồng đô la và USD/CNY',
+             ib:'Lãi suất giao dịch VND bình quân trên thị trường liên ngân hàng' },
+    ib: {
+      m: { week1:'1T', week2:'2T', month1:'1TH', month3:'3TH', month6:'6TH', month9:'9TH' },
+      metricTip:'Chọn kỳ hạn lãi suất muốn hiển thị',
+      key: { overnight:'Qua đêm', week1:'1 tuần', week2:'2 tuần', month1:'1 tháng',
+             month3:'3 tháng', month6:'6 tháng', month9:'9 tháng' },
+      col: { date:'Ngày', overnight:'Qua đêm', change:'Δ đpt', month1:'1 tháng', month3:'3 tháng' },
+      note: {
+        dual:'Qua đêm và một kỳ hạn dùng hai trục độc lập. Mọi số liệu là %/năm; Δ được tính bằng điểm phần trăm.',
+        stack:'Mỗi kỳ hạn một khung riêng, chung trục thời gian — phù hợp khi đường cong lãi suất cách xa nhau.',
+        index:'Các kỳ hạn quy về 100 tại đầu kỳ để so tốc độ thay đổi, không phải mức lãi suất tuyệt đối.'
+      },
+      about: {
+        h1:'Cách đọc', h2:'Nguồn dữ liệu', h3:'Giới hạn',
+        p1:'Lãi suất liên ngân hàng là lãi suất giao dịch VND bình quân giữa các tổ chức tín dụng. Kỳ hạn qua đêm nhạy nhất với thanh khoản tức thời: tăng đột biến thường phản ánh nhu cầu vốn ngắn hạn trong hệ thống đang căng.',
+        p2:'Nguồn gốc là số liệu do Ngân hàng Nhà nước Việt Nam công bố. Pipeline lấy bản chuẩn hoá từ Viet Dataverse, lưu thành JSON tĩnh rồi mới đưa lên GitHub Pages; khoá API không bao giờ xuất hiện trong trình duyệt.',
+        l1:'Đây là lãi suất bình quân của giao dịch đã phát sinh, không phải lãi suất điều hành và không phải lãi suất cho vay khách hàng.',
+        l2:'Không phải ngày làm việc nào cũng có đủ giao dịch ở mọi kỳ hạn; ô trống được giữ nguyên, không nội suy.',
+        l3:'Khi chưa cấu hình API key, pipeline chỉ bồi dần từ snapshot công khai một tháng; lịch sử sẽ dài lên qua mỗi lần cập nhật.'
+      }
+    },
     fx: {
       keyUsd:'USD/VND (đồng)', keyDxy:'Dollar Index (điểm)',
       keyCny:'USD/CNY', keyVcb:'Vietcombank bán (đồng)',
@@ -85,9 +106,30 @@ export const DICT = {
 
   en: {
     locale: 'en-US',
-    ws: { val:'Valuation', fx:'FX' },
+    ws: { val:'Valuation', fx:'FX', ib:'Interbank' },
     wsTip: { val:'VNINDEX with market P/E and P/B',
-             fx:'USD/VND against dollar strength and USD/CNY' },
+             fx:'USD/VND against dollar strength and USD/CNY',
+             ib:'Average VND interbank transaction rates by tenor' },
+    ib: {
+      m: { week1:'1W', week2:'2W', month1:'1M', month3:'3M', month6:'6M', month9:'9M' },
+      metricTip:'Choose interbank tenors to display',
+      key: { overnight:'Overnight', week1:'1 week', week2:'2 weeks', month1:'1 month',
+             month3:'3 months', month6:'6 months', month9:'9 months' },
+      col: { date:'Date', overnight:'Overnight', change:'Δ pp', month1:'1 month', month3:'3 months' },
+      note: {
+        dual:'Overnight and one tenor use independent axes. All values are % p.a.; Δ is measured in percentage points.',
+        stack:'Each tenor has its own pane on a shared time axis — useful when the curve is widely dispersed.',
+        index:'Tenors are rebased to 100 at period start to compare movement, not absolute rate levels.'
+      },
+      about: {
+        h1:'How to read', h2:'Data source', h3:'Limitations',
+        p1:'Interbank rates are average VND transaction rates between credit institutions. Overnight is the most sensitive gauge of immediate liquidity; sharp spikes commonly signal short-term funding pressure.',
+        p2:'The underlying figures are published by the State Bank of Vietnam. The pipeline retrieves a normalized copy from Viet Dataverse and writes static JSON for GitHub Pages; an API key is never exposed to browsers.',
+        l1:'These are averages of completed transactions, not policy rates or customer lending rates.',
+        l2:'Not every business day has transactions at every tenor; missing observations remain blank and are never interpolated.',
+        l3:'Without an API key the pipeline accumulates the public one-month snapshot, so history grows with each update.'
+      }
+    },
     fx: {
       keyUsd:'USD/VND', keyDxy:'Dollar Index', keyCny:'USD/CNY',
       keyVcb:'Vietcombank sell', 

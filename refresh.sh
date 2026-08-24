@@ -9,6 +9,7 @@ cd "$(dirname "$0")"
 
 python3 scripts/fetch_data.py     # VNINDEX + P/E + P/B
 python3 scripts/fetch_fx.py       # USD/VND + DXY + USD/CNY + Vietcombank
+python3 scripts/fetch_interbank.py # lãi suất liên ngân hàng SBV
 
 if ! git diff --quiet -- site/data/; then
   git add site/data/

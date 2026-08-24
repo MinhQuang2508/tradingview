@@ -21,6 +21,15 @@ const WS = {
     metrics: ['dxy'],
     fromKey: null,
   },
+  ib: {
+    file: 'data/interbank.json',
+    primary: 'overnight',
+    // Snapshot công khai hiện có hai kỳ hạn này; pipeline vẫn giữ schema cho
+    // 1T/2T/6TH/9TH và chỉ cần thêm lại ở đây khi nguồn bắt đầu trả dữ liệu.
+    optional: ['month1', 'month3'],
+    metrics: ['month1', 'month3'],
+    fromKey: null,
+  },
 };
 
 /* ------------------------------------------------------------ trạng thái --- */
@@ -30,15 +39,18 @@ const state = Object.assign({
   ws: 'val', lang: 'vi', theme: 'dark', range: '1y', tab: 'data',
   // Kiểu xem và chỉ tiêu đối chiếu tách riêng cho từng workspace: tỷ giá có ba
   // chuỗi lệch thang nhau hàng nghìn lần nên mặc định phải là xếp tầng.
-  view: { val: 'dual', fx: 'stack' },
-  metrics: { val: ['pe'], fx: ['dxy', 'usdcny'] },
+  view: { val: 'dual', fx: 'stack', ib: 'stack' },
+  metrics: { val: ['pe'], fx: ['dxy', 'usdcny'], ib: ['month1', 'month3'] },
 }, JSON.parse(localStorage.getItem(LS) || '{}'));
+// Object.assign chỉ merge tầng ngoài; người dùng cũ chưa có khóa workspace mới.
+state.view.ib ||= 'stack';
+state.metrics.ib ||= ['month1', 'month3'];
 
 const save = () => localStorage.setItem(LS, JSON.stringify(state));
 let t = DICT[state.lang];
 
-const store = { val: null, fx: null };          // dữ liệu thô theo workspace
-const rowsOf = { val: [], fx: [] };             // đã tính sẵn % thay đổi
+const store = { val: null, fx: null, ib: null }; // dữ liệu thô theo workspace
+const rowsOf = { val: [], fx: [], ib: [] };      // đã tính sẵn mức thay đổi
 let live = { on: false, index: null, at: null, fail: 0, disabled: false, probed: false };
 
 const $ = s => document.querySelector(s);
@@ -111,7 +123,9 @@ async function loadWs(ws, quiet = false) {
 
   // Vietcombank là mảng riêng — gộp vào chuỗi chính để bảng và biểu đồ dùng chung.
   const vcb = new Map((json.vcb || []).map(v => [v.d, v]));
-  const keys = ws === 'val' ? ['i', 'pe', 'pb'] : ['usdvnd', 'dxy', 'usdcny'];
+  const keys = ws === 'val' ? ['i', 'pe', 'pb']
+    : ws === 'fx' ? ['usdvnd', 'dxy', 'usdcny']
+    : ['overnight', 'week_1', 'week_2', 'month_1', 'month_3', 'month_6', 'month_9'];
 
   rowsOf[ws] = json.series.map((r, k, arr) => {
     const p = arr[k - 1];
@@ -120,7 +134,7 @@ async function loadWs(ws, quiet = false) {
     if (q) { out.vcb_buy = q.buy; out.vcb_sell = q.sell; }
     for (const key of keys) {
       out['d_' + key] = (r[key] == null || p?.[key] == null) ? null
-        : (r[key] / p[key] - 1) * 100;
+        : ws === 'ib' ? r[key] - p[key] : (r[key] / p[key] - 1) * 100;
     }
     return out;
   });
@@ -213,12 +227,12 @@ function renderChrome() {
   $('#viewSeg').innerHTML = Object.entries(t.view).map(([k, v]) =>
     `<button type="button" data-v="${k}" title="${t.viewTip[k]}" aria-pressed="${view() === k}">${v}</button>`).join('');
 
-  const mLabel = state.ws === 'val'
-    ? { pe: 'PE', pb: 'PB' }
-    : t.fx.m;
+  const mLabel = state.ws === 'val' ? { pe: 'PE', pb: 'PB' }
+    : state.ws === 'fx' ? t.fx.m : t.ib.m;
   $('#metricSeg').innerHTML = cfg().optional.map(k =>
     `<button type="button" data-v="${k}" aria-pressed="${metrics().includes(k)}">${mLabel[k]}</button>`).join('');
-  $('#metricSeg').title = state.ws === 'val' ? t.metricTip : t.fx.metricTip;
+  $('#metricSeg').title = state.ws === 'val' ? t.metricTip
+    : state.ws === 'fx' ? t.fx.metricTip : t.ib.metricTip;
 
   $$('.tab').forEach(b => {
     b.textContent = t.tab[b.dataset.tab];
@@ -245,10 +259,13 @@ function renderLegend() {
   const names = [cfg().primary, ...metrics()];
   const label = state.ws === 'val'
     ? { index: t.keyIndex, pe: t.keyPe, pb: t.keyPb }
-    : { usdvnd: t.fx.keyUsd, dxy: t.fx.keyDxy, usdcny: t.fx.keyCny, vcbsell: t.fx.keyVcb };
+    : state.ws === 'fx'
+      ? { usdvnd: t.fx.keyUsd, dxy: t.fx.keyDxy, usdcny: t.fx.keyCny, vcbsell: t.fx.keyVcb }
+      : t.ib.key;
   $('#legend').innerHTML = names.map(n =>
     `<span class="key"><i style="background:var(${SERIES[n].cssVar})"></i>${label[n]}</span>`).join('');
-  const note = state.ws === 'val' ? t.note[view()] : t.fx.note[view()];
+  const note = state.ws === 'val' ? t.note[view()]
+    : state.ws === 'fx' ? t.fx.note[view()] : t.ib.note[view()];
   const rows = sliceRange();
   const bits = [];
   if (state.ws === 'val' && rows.length) {
@@ -292,6 +309,20 @@ const roDelta = v => {
 function renderReadout(row) {
   if (!row) { $('#readout').innerHTML = ''; return; }
   const rows = sliceRange();
+
+  if (state.ws === 'ib') {
+    const names = [cfg().primary, ...metrics()];
+    $('#readout').innerHTML = roItem(t.roDate, fdate(row.d)) + names.map((name, i) => {
+      const key = SERIES[name].key;
+      const delta = row['d_' + key];
+      const cls = `c-s${i + 1}`;
+      return `<div class="ro"><span class="ro-k ${cls}">${t.ib.key[name]}</span>`
+        + `<span class="ro-v num ${cls}">${fmt(row[key])}%</span>`
+        + `<span class="ro-d num ${delta > 0 ? 'down' : delta < 0 ? 'up' : 'flat'}">`
+        + `${delta == null ? '—' : `${delta > 0 ? '+' : ''}${fmt(delta)} đpt`}</span></div>`;
+    }).join('');
+    return;
+  }
 
   if (state.ws === 'fx') {
     const jan = rows.find(r => r.d.slice(0, 4) === row.d.slice(0, 4));
@@ -352,7 +383,13 @@ function renderStats() {
   const last = rows[rows.length - 1], first = rows[0];
   const box = [];
 
-  if (state.ws === 'fx') {
+  if (state.ws === 'ib') {
+    const active = [cfg().primary, ...metrics()];
+    for (const name of active) {
+      const key = SERIES[name].key;
+      box.push(statCard(t.ib.key[name], last[key], stats(rows.map(r => r[key])), 2, true));
+    }
+  } else if (state.ws === 'fx') {
     box.push(statCard(t.fx.statUsd, last.usdvnd, stats(rows.map(r => r.usdvnd)), 0, true));
     box.push(statCard(t.fx.statDxy, last.dxy, stats(rows.map(r => r.dxy)), 2, true));
     const chg = (last.usdvnd / first.usdvnd - 1) * 100;
@@ -377,6 +414,15 @@ function renderStats() {
 
 function renderAbout() {
   const d = DATA();
+  if (state.ws === 'ib') {
+    const a = t.ib.about;
+    $('#pane-about').innerHTML = `<div class="doc">
+      <h4>${a.h1}</h4><p>${a.p1}</p>
+      <h4>${a.h2}</h4><p>${a.p2}</p>
+      <h4>${a.h3}</h4><ul><li>${a.l1}</li><li>${a.l2}</li><li>${a.l3}</li></ul>
+    </div>`;
+    return;
+  }
   if (state.ws === 'fx') {
     const a = t.fx.about;
     $('#pane-about').innerHTML = `<div class="doc">
@@ -405,6 +451,16 @@ function renderAbout() {
 }
 
 function tableColumns() {
+  if (state.ws === 'ib') {
+    const c = t.ib.col;
+    return [
+      { key: 'd', label: c.date, type: 'date' },
+      { key: 'overnight', label: c.overnight, digits: 2 },
+      { key: 'd_overnight', label: c.change, digits: 2 },
+      { key: 'month_1', label: c.month1, digits: 2 },
+      { key: 'month_3', label: c.month3, digits: 2 },
+    ];
+  }
   if (state.ws === 'fx') {
     const c = t.fx.col;
     return [

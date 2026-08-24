@@ -8,6 +8,7 @@ Terminal web hai bộ dữ liệu về thị trường Việt Nam.
 |---|---|
 | **Định giá** | VNINDEX từ **2004**, **P/B** từ **2008** (4.499 phiên), **P/E** từ **2010** (4.010 phiên) — tính từ báo cáo tài chính của từng doanh nghiệp chứ không lấy lại số của bên thứ ba |
 | **Tỷ giá** | **USD/VND** từ **2003** (5.222 phiên) đặt cạnh **Dollar Index** và **USD/CNY**, kèm giá mua/bán Vietcombank |
+| **Lãi suất LNH** | Lãi suất VND bình quân liên ngân hàng: qua đêm, 1–2 tuần và 1–9 tháng; nguồn gốc NHNN |
 
 | | |
 |---|---|
@@ -69,10 +70,16 @@ Tab Tỷ giá:
 | USD/VND, DXY, USD/CNY | Yahoo Finance — `USDVND=X`, `DX-Y.NYB`, `USDCNY=X` |
 | Tỷ giá Vietcombank | `portal.vietcombank.com.vn/Usercontrols/TVPortal.TyGia/pXML.aspx?b=10` |
 
+Tab Lãi suất LNH lấy số liệu gốc do **Ngân hàng Nhà nước Việt Nam** công bố,
+qua bản chuẩn hoá của Viet Dataverse. Đặt `VIETDATAVERSE_API_KEY` ở môi trường
+máy cập nhật để lấy trọn lịch sử; không có key thì script merge snapshot công
+khai một tháng vào file cũ, nhờ vậy chuỗi vẫn bồi dần mà không lộ secret.
+
 ## Cập nhật
 
 `scripts/fetch_data.py` dựng lại `site/data/vnindex_pe.json`, `scripts/fetch_fx.py`
-dựng `site/data/fx.json`. Máy chủ nội bộ chạy `refresh.sh` sau mỗi phiên rồi đẩy
+dựng `site/data/fx.json`, `scripts/fetch_interbank.py` dựng
+`site/data/interbank.json`. Máy chủ nội bộ chạy `refresh.sh` sau mỗi phiên rồi đẩy
 lên đây; GitHub Actions thấy commit mới sẽ deploy lại Pages. Có thêm một lịch
 chạy dự phòng ngay trên Actions.
 
@@ -85,6 +92,7 @@ origin.
 ```bash
 python3 scripts/fetch_data.py     # VNINDEX + P/E + P/B
 python3 scripts/fetch_fx.py       # USD/VND + DXY + USD/CNY
+python3 scripts/fetch_interbank.py # lãi suất liên ngân hàng SBV
 python3 -m http.server -d site 8000
 ```
 

@@ -39,18 +39,23 @@ jobs:
       - name: Tải lại dữ liệu (dự phòng)
         if: github.event_name != 'push'
         continue-on-error: true
+        env:
+          VIETDATAVERSE_API_KEY: ${{ secrets.VIETDATAVERSE_API_KEY }}
         run: |
           cp site/data/vnindex_pe.json /tmp/pe_truoc.json
           cp site/data/fx.json /tmp/fx_truoc.json
+          cp site/data/interbank.json /tmp/interbank_truoc.json
           python3 scripts/fetch_data.py
           python3 scripts/fetch_fx.py
+          python3 scripts/fetch_interbank.py
           python3 - <<'EOF'
           import json, shutil, sys
           def n_pe(p):
               s = json.load(open(p))['series']
               return len(s), sum(1 for r in s if 'pe' in r)
           for moi, cu in (('site/data/vnindex_pe.json', '/tmp/pe_truoc.json'),
-                          ('site/data/fx.json', '/tmp/fx_truoc.json')):
+                          ('site/data/fx.json', '/tmp/fx_truoc.json'),
+                          ('site/data/interbank.json', '/tmp/interbank_truoc.json')):
               a, b = n_pe(moi), n_pe(cu)
               if a[0] < b[0] * 0.98 or a[1] < b[1] * 0.98:
                   print(f"::warning::{moi} ngắn đi ({a} < {b}) — giữ bản cũ")

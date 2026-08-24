@@ -17,6 +17,14 @@ export const SERIES = {
   dxy:    { key:'dxy',     cssVar:'--s2', digits:2 },
   usdcny: { key:'usdcny',  cssVar:'--s3', digits:3 },
   vcbsell:{ key:'vcb_sell',cssVar:'--s4', digits:0 },
+  // workspace "lãi suất liên ngân hàng" (%/năm)
+  overnight:{ key:'overnight',cssVar:'--s1', digits:2 },
+  week1:    { key:'week_1',   cssVar:'--s2', digits:2 },
+  week2:    { key:'week_2',   cssVar:'--s3', digits:2 },
+  month1:   { key:'month_1',  cssVar:'--s4', digits:2 },
+  month3:   { key:'month_3',  cssVar:'--s5', digits:2 },
+  month6:   { key:'month_6',  cssVar:'--s6', digits:2 },
+  month9:   { key:'month_9',  cssVar:'--s7', digits:2 },
 };
 
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -123,7 +131,7 @@ export class ValuationChart {
       const spec = SERIES[name];
       const paneIndex = mode === 'stack' ? k : 0;
       let priceScaleId = 'right';
-      if (mode === 'dual') priceScaleId = name === 'index' ? 'right' : 'left';
+      if (mode === 'dual') priceScaleId = name === primary ? 'right' : 'left';
       if (mode === 'index') priceScaleId = 'right';
 
       const s = this.chart.addSeries(LWC.LineSeries, {
