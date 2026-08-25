@@ -7,6 +7,12 @@ import { DataTable } from './table.js';
    lọc. Khác nhau chỉ ở phần khai báo dưới đây. */
 
 const WS = {
+  market: {
+    primary: 'index',
+    optional: ['pe', 'usdvnd', 'overnight', 'net'],
+    metrics: ['pe', 'usdvnd', 'overnight', 'net'],
+    fromKey: null,
+  },
   val: {
     file: 'data/vnindex_pe.json',
     primary: 'index',
@@ -43,12 +49,16 @@ const WS = {
 
 const LS = 'vnindex-pe:v2';
 const state = Object.assign({
-  ws: 'val', lang: 'vi', theme: 'dark', range: '1y', tab: 'data',
+  ws: 'market', lang: 'vi', theme: 'dark', range: '1y', tab: 'data',
   // Kiểu xem và chỉ tiêu đối chiếu tách riêng cho từng workspace: tỷ giá có ba
   // chuỗi lệch thang nhau hàng nghìn lần nên mặc định phải là xếp tầng.
   view: { val: 'dual', fx: 'stack', ib: 'stack', omo: 'stack' },
   metrics: { val: ['pe'], fx: ['dxy', 'usdcny'], ib: ['month1', 'month3'], omo: ['repoIn', 'billBal'] },
 }, JSON.parse(localStorage.getItem(LS) || '{}'));
+// Từ bản này chỉ còn một workspace tổng hợp; bỏ lựa chọn workspace đã lưu cũ.
+state.ws = 'market';
+state.view.market = 'index';
+state.metrics.market = ['pe', 'usdvnd', 'overnight', 'net'];
 // Object.assign chỉ merge tầng ngoài; người dùng cũ chưa có khóa workspace mới.
 state.view.ib ||= 'stack';
 state.metrics.ib ||= ['month1', 'month3'];
@@ -58,8 +68,8 @@ state.metrics.omo ||= ['repoIn', 'billBal'];
 const save = () => localStorage.setItem(LS, JSON.stringify(state));
 let t = DICT[state.lang];
 
-const store = { val: null, fx: null, ib: null, omo: null }; // dữ liệu thô theo workspace
-const rowsOf = { val: [], fx: [], ib: [], omo: [] };        // đã tính sẵn mức thay đổi
+const store = { val: null, fx: null, ib: null, omo: null, market: null };
+const rowsOf = { val: [], fx: [], ib: [], omo: [], market: [] };
 let live = { on: false, index: null, at: null, fail: 0, disabled: false, probed: false };
 
 const $ = s => document.querySelector(s);
@@ -124,6 +134,50 @@ const percentile = (sorted, x) => {
 /* --------------------------------------------------------------- dữ liệu --- */
 
 async function loadWs(ws, quiet = false) {
+  if (ws === 'market') {
+    const files = ['vnindex_pe.json', 'fx.json', 'interbank.json', 'omo.json'];
+    const payloads = await Promise.all(files.map(async file => {
+      const res = await fetch(`data/${file}?t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`${file}: ${res.status}`);
+      return res.json();
+    }));
+    const [valuation, fx, ib, omo] = payloads;
+    const merged = new Map();
+    const put = (r, fields) => {
+      const out = merged.get(r.d) || { d: r.d };
+      for (const [src, dst] of fields) if (r[src] != null) out[dst] = r[src];
+      merged.set(r.d, out);
+    };
+    valuation.series.forEach(r => put(r, [['i', 'i'], ['pe', 'pe']]));
+    fx.series.forEach(r => put(r, [['usdvnd', 'usdvnd']]));
+    ib.series.forEach(r => put(r, [['overnight', 'overnight']]));
+    omo.series.forEach(r => put(r, [['net', 'net']]));
+    const raw = [...merged.values()].sort((a, b) => a.d.localeCompare(b.d));
+    // Giá/chỉ số là mức tồn tại cho tới quan sát kế tiếp, nên mang điểm gần
+    // nhất về phía trước để năm đường không bị đứt do lịch công bố khác nhau.
+    // Riêng bơm/hút là dòng tiền trong ngày, tuyệt đối không tự điền.
+    const carried = {};
+    for (const r of raw) for (const key of ['i', 'pe', 'usdvnd', 'overnight']) {
+      if (r[key] != null) carried[key] = r[key];
+      else if (carried[key] != null) r[key] = carried[key];
+    }
+    rowsOf.market = raw.map((r, i) => {
+      const out = { ...r };
+      for (const key of ['i', 'pe', 'usdvnd', 'overnight', 'net']) {
+        let p = i - 1;
+        while (p >= 0 && raw[p][key] == null) p--;
+        out['d_' + key] = r[key] == null || p < 0 ? null
+          : (key === 'overnight' || key === 'net') ? r[key] - raw[p][key]
+          : (r[key] / raw[p][key] - 1) * 100;
+      }
+      return out;
+    });
+    const generated = payloads.map(p => p.generated_at).filter(Boolean).sort().slice(-1)[0];
+    const isNew = store.market && generated !== store.market.generated_at;
+    store.market = { generated_at: generated, series: raw };
+    if (isNew && !quiet) toast(t.toastNew);
+    return isNew;
+  }
   const res = await fetch(`${WS[ws].file}?t=${Date.now()}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(res.status);
   const json = await res.json();
@@ -237,11 +291,13 @@ function renderChrome() {
   $('#viewSeg').innerHTML = Object.entries(t.view).map(([k, v]) =>
     `<button type="button" data-v="${k}" title="${t.viewTip[k]}" aria-pressed="${view() === k}">${v}</button>`).join('');
 
-  const mLabel = state.ws === 'val' ? { pe: 'PE', pb: 'PB' }
+  const mLabel = state.ws === 'market' ? t.market.m
+    : state.ws === 'val' ? { pe: 'PE', pb: 'PB' }
     : state.ws === 'fx' ? t.fx.m : state.ws === 'ib' ? t.ib.m : t.omo.m;
   $('#metricSeg').innerHTML = cfg().optional.map(k =>
     `<button type="button" data-v="${k}" aria-pressed="${metrics().includes(k)}">${mLabel[k]}</button>`).join('');
   $('#metricSeg').title = state.ws === 'val' ? t.metricTip
+    : state.ws === 'market' ? t.market.metricTip
     : state.ws === 'fx' ? t.fx.metricTip : state.ws === 'ib' ? t.ib.metricTip : t.omo.metricTip;
 
   $$('.tab').forEach(b => {
@@ -267,14 +323,16 @@ function renderChrome() {
 
 function renderLegend() {
   const names = [cfg().primary, ...metrics()];
-  const label = state.ws === 'val'
+  const label = state.ws === 'market' ? t.market.key
+    : state.ws === 'val'
     ? { index: t.keyIndex, pe: t.keyPe, pb: t.keyPb }
     : state.ws === 'fx'
       ? { usdvnd: t.fx.keyUsd, dxy: t.fx.keyDxy, usdcny: t.fx.keyCny, vcbsell: t.fx.keyVcb }
       : state.ws === 'ib' ? t.ib.key : t.omo.key;
   $('#legend').innerHTML = names.map(n =>
     `<span class="key"><i style="background:var(${SERIES[n].cssVar})"></i>${label[n]}</span>`).join('');
-  const note = state.ws === 'val' ? t.note[view()]
+  const note = state.ws === 'market' ? t.market.note
+    : state.ws === 'val' ? t.note[view()]
     : state.ws === 'fx' ? t.fx.note[view()] : state.ws === 'ib' ? t.ib.note[view()] : t.omo.note[view()];
   const rows = sliceRange();
   const bits = [];
@@ -319,6 +377,20 @@ const roDelta = v => {
 function renderReadout(row) {
   if (!row) { $('#readout').innerHTML = ''; return; }
   const rows = sliceRange();
+
+  if (state.ws === 'market') {
+    const names = [cfg().primary, ...metrics()];
+    $('#readout').innerHTML = roItem(t.roDate, fdate(row.d)) + names.map((name, i) => {
+      const key = SERIES[name].key, delta = row['d_' + key];
+      const unit = name === 'overnight' ? '%' : name === 'net' ? ' tỷ' : '';
+      const digits = SERIES[name].digits;
+      return `<div class="ro"><span class="ro-k c-s${i + 1}">${t.market.key[name]}</span>`
+        + `<span class="ro-v num c-s${i + 1}">${fmt(row[key], digits)}${row[key] == null ? '' : unit}</span>`
+        + `<span class="ro-d num ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}">`
+        + `${delta == null ? '—' : `${delta > 0 ? '+' : ''}${fmt(delta)}${name === 'overnight' ? ' đpt' : name === 'net' ? ' tỷ' : '%'}`}</span></div>`;
+    }).join('');
+    return;
+  }
 
   if (state.ws === 'omo') {
     const names = [cfg().primary, ...metrics()];
@@ -405,7 +477,13 @@ function renderStats() {
   const last = rows[rows.length - 1], first = rows[0];
   const box = [];
 
-  if (state.ws === 'omo') {
+  if (state.ws === 'market') {
+    for (const name of [cfg().primary, ...metrics()]) {
+      const key = SERIES[name].key;
+      const current = [...rows].reverse().find(r => r[key] != null)?.[key];
+      box.push(statCard(t.market.key[name], current, stats(rows.map(r => r[key])), SERIES[name].digits, true));
+    }
+  } else if (state.ws === 'omo') {
     for (const name of [cfg().primary, ...metrics()]) {
       const key = SERIES[name].key;
       box.push(statCard(t.omo.key[name], last[key], stats(rows.map(r => r[key])), 0, true));
@@ -441,6 +519,12 @@ function renderStats() {
 
 function renderAbout() {
   const d = DATA();
+  if (state.ws === 'market') {
+    const a = t.market.about;
+    $('#pane-about').innerHTML = `<div class="doc"><h4>${a.h1}</h4><p>${a.p1}</p>
+      <h4>${a.h2}</h4><p>${a.p2}</p><h4>${a.h3}</h4><ul><li>${a.l1}</li><li>${a.l2}</li></ul></div>`;
+    return;
+  }
   if (state.ws === 'omo') {
     const a = t.omo.about;
     $('#pane-about').innerHTML = `<div class="doc">
@@ -487,6 +571,17 @@ function renderAbout() {
 }
 
 function tableColumns() {
+  if (state.ws === 'market') {
+    const c = t.market.col;
+    return [
+      { key: 'd', label: c.date, type: 'date' },
+      { key: 'i', label: c.index, digits: 2 },
+      { key: 'pe', label: c.pe, digits: 2 },
+      { key: 'usdvnd', label: c.usd, digits: 0 },
+      { key: 'overnight', label: c.ib, digits: 2 },
+      { key: 'net', label: c.net, digits: 0 },
+    ];
+  }
   if (state.ws === 'omo') {
     const c = t.omo.col;
     return [
@@ -644,8 +739,10 @@ function boot() {
     stampCloses();
     renderChrome();
     renderAll();
-    pollLive();
-    setInterval(pollLive, 20_000);
+    if (state.ws === 'val') {
+      pollLive();
+      setInterval(pollLive, 20_000);
+    }
     setInterval(async () => {
       const fresh = await loadWs(state.ws).catch(() => false);
       if (fresh) { stampCloses(); renderAll(); }

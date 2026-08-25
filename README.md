@@ -1,15 +1,13 @@
 # VNINDEX · P/E · P/B · Tỷ giá · Thanh khoản
 
-Terminal web theo dõi định giá và thanh khoản thị trường Việt Nam.
+Terminal web tổng hợp định giá và thanh khoản thị trường Việt Nam trên một biểu đồ.
 
 **→ https://minhquang2508.github.io/tradingview/**
 
-| Tab | Nội dung |
-|---|---|
-| **Định giá** | VNINDEX từ **2004**, **P/B** từ **2008** (4.499 phiên), **P/E** từ **2010** (4.010 phiên) — tính từ báo cáo tài chính của từng doanh nghiệp chứ không lấy lại số của bên thứ ba |
-| **Tỷ giá** | **USD/VND** từ **2003** (5.222 phiên) đặt cạnh **Dollar Index** và **USD/CNY**, kèm giá mua/bán Vietcombank |
-| **Lãi suất LNH** | Lãi suất VND bình quân liên ngân hàng: qua đêm, 1–2 tuần và 1–9 tháng; nguồn gốc NHNN |
-| **Hút/Bơm** | Bơm/hút ròng qua OMO và tín phiếu, khối lượng trúng thầu và số dư lưu hành; đơn vị tỷ đồng |
+Biểu đồ duy nhất gồm năm đường: **VNINDEX**, **P/E toàn thị trường**, **USD/VND**,
+**lãi suất liên ngân hàng qua đêm** và **bơm/hút ròng OMO–tín phiếu**. Do năm
+chuỗi khác đơn vị, mỗi đường được chuẩn hóa 0–100 theo biên độ trong kỳ đang xem;
+dải số phía trên và bảng vẫn giữ giá trị gốc.
 
 | | |
 |---|---|
@@ -37,13 +35,11 @@ P/B(t) = Σ VốnHoá_i(t) / Σ VốnChủSởHữu_i(t)
 
 Đối chiếu biểu đồ định giá FiinTrade ngày 13/08/2026: FiinTrade ≈ 12,1 — số ở đây 12,30.
 
-## Tab Tỷ giá
+## Chuỗi tỷ giá
 
 | Chuỗi | Ý nghĩa |
 |---|---|
 | **USD/VND** | Tỷ giá thị trường (liên ngân hàng), không phải giá niêm yết của một ngân hàng cụ thể |
-| **Dollar Index** | Tách phần VND mất giá do đồng đô la mạnh lên toàn cầu khỏi phần do sức ép trong nước |
-| **USD/CNY** | Đối chiếu với đồng tiền của bạn hàng thương mại lớn nhất |
 | **Vietcombank mua/bán** | Bản tin tỷ giá công khai của ngân hàng — Vietcombank không cho tra lịch sử nên chuỗi này được **bồi dần** mỗi lần chạy |
 
 Chưa có **tỷ giá trung tâm** của Ngân hàng Nhà nước và **tỷ giá thị trường tự do**:
@@ -63,11 +59,11 @@ Tab Định giá — API công khai, không cần đăng nhập:
 Truy vấn VNDirect không cần lọc theo mã: một lời gọi trả về cả sàn cho một ngày
 hoặc một kỳ báo cáo.
 
-Tab Tỷ giá:
+Nguồn tỷ giá:
 
 | Dữ liệu | Nguồn |
 |---|---|
-| USD/VND, DXY, USD/CNY | Yahoo Finance — `USDVND=X`, `DX-Y.NYB`, `USDCNY=X` |
+| USD/VND | Yahoo Finance — `USDVND=X` |
 | Tỷ giá Vietcombank | `portal.vietcombank.com.vn/Usercontrols/TVPortal.TyGia/pXML.aspx?b=10` |
 
 Tab Lãi suất LNH lấy số liệu gốc do **Ngân hàng Nhà nước Việt Nam** công bố,

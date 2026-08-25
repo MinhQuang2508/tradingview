@@ -13,12 +13,12 @@ export const SERIES = {
   pe:     { key:'pe',      cssVar:'--s2', digits:2 },
   pb:     { key:'pb',      cssVar:'--s3', digits:2 },
   // workspace "tỷ giá"
-  usdvnd: { key:'usdvnd',  cssVar:'--s1', digits:0 },
+  usdvnd: { key:'usdvnd',  cssVar:'--s3', digits:0 },
   dxy:    { key:'dxy',     cssVar:'--s2', digits:2 },
   usdcny: { key:'usdcny',  cssVar:'--s3', digits:3 },
   vcbsell:{ key:'vcb_sell',cssVar:'--s4', digits:0 },
   // workspace "lãi suất liên ngân hàng" (%/năm)
-  overnight:{ key:'overnight',cssVar:'--s1', digits:2 },
+  overnight:{ key:'overnight',cssVar:'--s4', digits:2 },
   week1:    { key:'week_1',   cssVar:'--s2', digits:2 },
   week2:    { key:'week_2',   cssVar:'--s3', digits:2 },
   month1:   { key:'month_1',  cssVar:'--s4', digits:2 },
@@ -26,7 +26,7 @@ export const SERIES = {
   month6:   { key:'month_6',  cssVar:'--s6', digits:2 },
   month9:   { key:'month_9',  cssVar:'--s7', digits:2 },
   // workspace "nghiệp vụ thị trường mở" (tỷ đồng)
-  net:      { key:'net',             cssVar:'--s1', digits:0 },
+  net:      { key:'net',             cssVar:'--s5', digits:0 },
   repoIn:   { key:'repo_injection',  cssVar:'--s2', digits:0 },
   repoBal:  { key:'repo_outstanding',cssVar:'--s3', digits:0 },
   billBal:  { key:'bill_outstanding',cssVar:'--s4', digits:0 },
@@ -130,7 +130,12 @@ export class ValuationChart {
     this.mode = mode;
     this.base = {};
     if (mode === 'index')
-      for (const n of names) this.base[n] = rows[0]?.[SERIES[n].key] || 1;
+      for (const n of names) {
+        const values = rows.map(r => r[SERIES[n].key]).filter(v => v != null);
+        this.base[n] = values.length
+          ? { min: Math.min(...values), max: Math.max(...values) }
+          : { min: 0, max: 1 };
+      }
 
     names.forEach((name, k) => {
       const spec = SERIES[name];
@@ -178,7 +183,9 @@ export class ValuationChart {
 
   /** Giá trị thô -> giá trị vẽ, theo kiểu xem hiện tại. */
   _project(name, v) {
-    return this.mode === 'index' ? (v / (this.base[name] || 1)) * 100 : v;
+    if (this.mode !== 'index') return v;
+    const b = this.base[name] || { min: 0, max: 1 };
+    return ((v - b.min) / (b.max - b.min || 1)) * 100;
   }
 
   /** Cập nhật điểm cuối trong phiên mà không dựng lại series. */

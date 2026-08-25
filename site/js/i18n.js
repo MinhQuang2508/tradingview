@@ -4,11 +4,25 @@
 export const DICT = {
   vi: {
     locale: 'vi-VN',
-    ws: { val:'Định giá', fx:'Tỷ giá', ib:'Lãi suất LNH', omo:'Hút/Bơm' },
-    wsTip: { val:'VNINDEX cùng P/E và P/B toàn thị trường HOSE',
+    ws: { market:'Tổng hợp' },
+    wsTip: { market:'So sánh VNINDEX với định giá, tỷ giá và thanh khoản', val:'VNINDEX cùng P/E và P/B toàn thị trường HOSE',
              fx:'USD/VND đặt cạnh sức mạnh đồng đô la và USD/CNY',
              ib:'Lãi suất giao dịch VND bình quân trên thị trường liên ngân hàng',
              omo:'Tín phiếu và nghiệp vụ thị trường mở của Ngân hàng Nhà nước' },
+    market: {
+      m: { pe:'P/E', usdvnd:'USD/VND', overnight:'LNH O/N', net:'Hút/Bơm' },
+      metricTip:'Bật hoặc tắt chuỗi so sánh',
+      key: { index:'VNINDEX', pe:'P/E', usdvnd:'USD/VND', overnight:'Lãi suất LNH qua đêm', net:'Tín phiếu/OMO hút bơm ròng' },
+      col: { date:'Ngày', index:'VNINDEX', pe:'P/E', usd:'USD/VND', ib:'LNH O/N', net:'Hút/Bơm' },
+      note:'Mỗi chuỗi được chuẩn hóa 0–100 theo mức thấp/cao trong kỳ để năm đường cùng đọc được trên một trục; dải số phía trên vẫn là giá trị gốc.',
+      about: {
+        h1:'Biểu đồ tổng hợp', h2:'Nguồn dữ liệu', h3:'Lưu ý',
+        p1:'Một biểu đồ duy nhất so sánh VNINDEX, P/E toàn thị trường, USD/VND, lãi suất liên ngân hàng qua đêm và lượng bơm/hút ròng qua OMO, tín phiếu.',
+        p2:'VNINDEX và định giá lấy từ Vietcap/VNDirect; USD/VND từ Yahoo Finance; lãi suất liên ngân hàng từ số liệu NHNN qua Viet Dataverse; OMO và tín phiếu từ số liệu NHNN do Dữ Liệu Kinh Tế tổng hợp.',
+        l1:'Các chuỗi khác đơn vị nên đường biểu đồ biểu diễn vị trí 0–100 trong biên độ của chính chuỗi đó, không phải giá trị tuyệt đối.',
+        l2:'Bơm/hút ròng là dòng tiền từng ngày và có thể đổi dấu; cần đọc cùng giá trị gốc trên dải số liệu.'
+      }
+    },
     omo: {
       m: { repoIn:'Bơm OMO', repoBal:'OMO lưu hành', billBal:'Tín phiếu' },
       metricTip:'Chọn dòng tiền hoặc số dư muốn hiển thị',
@@ -74,7 +88,7 @@ export const DICT = {
     brandSub: 'định giá thị trường HOSE',
     range: { '1m':'1 tháng', '6m':'6 tháng', '1y':'1 năm', '3y':'3 năm', '5y':'5 năm', '10y':'10 năm', all:'Tất cả' },
     rangeShort: { '1m':'1TH', '6m':'6TH', '1y':'1N', '3y':'3N', '5y':'5N', '10y':'10N', all:'TC' },
-    view:  { dual:'2 trục', stack:'Xếp tầng', index:'Chuẩn hoá 100' },
+    view:  { index:'Chuẩn hoá 0–100' },
     viewTip: {
       dual:'Chỉ số và định giá chung một khung, hai thang đo riêng',
       stack:'Mỗi chỉ tiêu một khung, chung trục thời gian',
@@ -92,7 +106,7 @@ export const DICT = {
       stack:'Mỗi chỉ tiêu một khung riêng, chung trục thời gian — đọc mức tuyệt đối chính xác.',
       index:'Tất cả quy về 100 tại đầu kỳ, chung một trục — chênh lệch giữa các đường là chênh lệch % biến động.'
     },
-    tab: { data:'Số liệu', stats:'Định giá', about:'Thông tin' },
+    tab: { data:'Số liệu', stats:'Thống kê', about:'Thông tin' },
     filter: { last:'Gần nhất', from:'Từ', to:'Đến', reset:'Xoá lọc', custom:'Tuỳ chọn' },
     quick: { d30:'30N', d90:'90N', d180:'180N', d365:'1 năm', all:'Tất cả' },
     col: { date:'Ngày', index:'VNINDEX', chg:'±%', pe:'P/E', pb:'P/B' },
@@ -126,11 +140,25 @@ export const DICT = {
 
   en: {
     locale: 'en-US',
-    ws: { val:'Valuation', fx:'FX', ib:'Interbank', omo:'OMO/Bills' },
-    wsTip: { val:'VNINDEX with market P/E and P/B',
+    ws: { market:'Overview' },
+    wsTip: { market:'Compare VNINDEX with valuation, FX and liquidity', val:'VNINDEX with market P/E and P/B',
              fx:'USD/VND against dollar strength and USD/CNY',
              ib:'Average VND interbank transaction rates by tenor',
              omo:'State Bank open-market operations and bill liquidity absorption' },
+    market: {
+      m: { pe:'P/E', usdvnd:'USD/VND', overnight:'O/N rate', net:'Injection' },
+      metricTip:'Toggle comparison series',
+      key: { index:'VNINDEX', pe:'P/E', usdvnd:'USD/VND', overnight:'Overnight interbank rate', net:'Net OMO/bill injection' },
+      col: { date:'Date', index:'VNINDEX', pe:'P/E', usd:'USD/VND', ib:'O/N rate', net:'Net injection' },
+      note:'Each series is scaled from 0–100 over its own selected-period range so all five remain readable on one axis; the strip above retains raw values.',
+      about: {
+        h1:'Market overview', h2:'Data sources', h3:'Notes',
+        p1:'One chart compares VNINDEX, market P/E, USD/VND, the overnight interbank rate, and net liquidity injection or withdrawal through OMO and bills.',
+        p2:'VNINDEX and valuation use Vietcap/VNDirect; USD/VND uses Yahoo Finance; interbank rates use SBV figures via Viet Dataverse; OMO and bills use SBV figures aggregated by Dữ Liệu Kinh Tế.',
+        l1:'Because units differ, each line shows its 0–100 position within its own range rather than an absolute level.',
+        l2:'Net injection is a daily flow that can change sign; use the raw-value strip for interpretation.'
+      }
+    },
     omo: {
       m: { repoIn:'OMO injection', repoBal:'OMO outstanding', billBal:'Bills' },
       metricTip:'Choose the flow or outstanding balance to display',
@@ -196,7 +224,7 @@ export const DICT = {
     brandSub: 'HOSE market valuation',
     range: { '1m':'1M', '6m':'6M', '1y':'1Y', '3y':'3Y', '5y':'5Y', '10y':'10Y', all:'All' },
     rangeShort: { '1m':'1M', '6m':'6M', '1y':'1Y', '3y':'3Y', '5y':'5Y', '10y':'10Y', all:'All' },
-    view:  { dual:'Dual axis', stack:'Stacked', index:'Indexed 100' },
+    view:  { index:'Scaled 0–100' },
     viewTip: {
       dual:'Index and valuation in one pane, separate scales',
       stack:'One pane per measure, shared time axis',
@@ -214,7 +242,7 @@ export const DICT = {
       stack:'Each measure keeps its own pane and scale while sharing the time axis — absolute levels read correctly.',
       index:'Everything rebased to 100 at period start on one axis — the gap is the difference in percent change.'
     },
-    tab: { data:'Data', stats:'Valuation', about:'About' },
+    tab: { data:'Data', stats:'Statistics', about:'About' },
     filter: { last:'Last', from:'From', to:'To', reset:'Clear', custom:'Custom' },
     quick: { d30:'30D', d90:'90D', d180:'180D', d365:'1Y', all:'All' },
     col: { date:'Date', index:'VNINDEX', chg:'±%', pe:'P/E', pb:'P/B' },
