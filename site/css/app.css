@@ -252,17 +252,20 @@ tbody tr.is-sel td{background:var(--panel-3)}
 /* ------------------------------------------------------ đáp ứng --- */
 /* Thanh trên cùng cao cố định nên phải bỏ dần thứ ít quan trọng thay vì để
    xuống dòng — xuống dòng sẽ tràn ra ngoài chiều cao đã đặt. */
-@media (max-width:1560px){ .brand-sub{display:none} }
-/* Bảy nút khoảng thời gian không đủ chỗ dưới 1500px — đổi sang nhãn viết tắt
-   thay vì để thanh trên cùng xuống dòng. */
-@media (max-width:1500px){ .lbl-long{display:none} .lbl-short{display:inline} }
-@media (max-width:1360px){ #statusTime{display:none} }
+@media (max-width:1800px){ .brand-sub{display:none} }
+/* Sau khi có bốn workspace, thanh điều hướng dài hơn trước. Đổi nhãn khoảng
+   thời gian sớm để các nút ngôn ngữ/giao diện luôn còn nằm trong viewport. */
+@media (max-width:1750px){ .lbl-long{display:none} .lbl-short{display:inline} }
+@media (max-width:1650px){ #statusTime,#statusText{display:none} .status{gap:0} }
+@media (max-width:1560px){
+  .topbar{gap:7px;padding-inline:9px}
+  .ws button{padding-inline:9px}
+  .seg button{padding-inline:7px}
+  .brand-name{font-size:0}
+  .brand-name::after{content:'VNINDEX';font-size:12.5px}
+}
 @media (max-width:1240px){
   :root{--side-w:340px}
-  #statusText{display:none}
-  .status{gap:0}
-  .brand-name{font-size:0}
-  .brand-name::after{content:'VALUATION';font-size:12.5px}
 }
 @media (max-width:1100px){ :root{--side-w:310px} .chart-foot .note{display:none} }
 @media (max-width:860px){
