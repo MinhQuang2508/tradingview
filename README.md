@@ -9,6 +9,9 @@ Biểu đồ duy nhất gồm năm đường: **VNINDEX**, **P/E toàn thị tr�
 chuỗi khác đơn vị, mỗi đường được chuẩn hóa 0–100 theo biên độ trong kỳ đang xem;
 dải số phía trên và bảng vẫn giữ giá trị gốc.
 
+Có thể chuyển sang **Đơn vị riêng** để mỗi đường dùng một price scale độc lập,
+tự auto-fit theo dữ liệu gốc. Nút `⤢` auto-fit lại cả thời gian và price scale.
+
 | | |
 |---|---|
 | Biểu đồ | Lightweight Charts — 3 kiểu: 2 trục, xếp tầng, chuẩn hoá 100 |

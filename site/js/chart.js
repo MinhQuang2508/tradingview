@@ -143,6 +143,9 @@ export class ValuationChart {
       let priceScaleId = 'right';
       if (mode === 'dual') priceScaleId = name === primary ? 'right' : 'left';
       if (mode === 'index') priceScaleId = 'right';
+      // Mỗi chuỗi một overlay price scale: thư viện tự fit theo đơn vị gốc của
+      // từng chuỗi nhưng cả năm đường vẫn nằm trong cùng một pane.
+      if (mode === 'raw') priceScaleId = `raw-${name}`;
 
       const s = this.chart.addSeries(LWC.LineSeries, {
         color: cssv(spec.cssVar),
@@ -167,6 +170,9 @@ export class ValuationChart {
         data.push(v == null ? { time: r.d } : { time: r.d, value: this._project(name, v) });
       }
       s.setData(data);
+      if (mode === 'raw') s.priceScale().applyOptions({
+        autoScale: true, scaleMargins: { top: 0.08, bottom: 0.08 },
+      });
       this.series[name] = s;
     });
 
@@ -179,7 +185,11 @@ export class ValuationChart {
     else this.chart.timeScale().fitContent();
   }
 
-  fit() { this.chart.timeScale().fitContent(); }
+  fit() {
+    this.chart.timeScale().fitContent();
+    for (const s of Object.values(this.series))
+      s.priceScale().applyOptions({ autoScale: true });
+  }
 
   /** Giá trị thô -> giá trị vẽ, theo kiểu xem hiện tại. */
   _project(name, v) {

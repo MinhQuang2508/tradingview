@@ -14,7 +14,10 @@ export const DICT = {
       metricTip:'Bật hoặc tắt chuỗi so sánh',
       key: { index:'VNINDEX', pe:'P/E', usdvnd:'USD/VND', overnight:'Lãi suất LNH qua đêm', net:'Tín phiếu/OMO hút bơm ròng' },
       col: { date:'Ngày', index:'VNINDEX', pe:'P/E', usd:'USD/VND', ib:'LNH O/N', net:'Hút/Bơm' },
-      note:'Mỗi chuỗi được chuẩn hóa 0–100 theo mức thấp/cao trong kỳ để năm đường cùng đọc được trên một trục; dải số phía trên vẫn là giá trị gốc.',
+      note: {
+        index:'Mỗi chuỗi được chuẩn hóa 0–100 theo mức thấp/cao trong kỳ để năm đường cùng đọc được trên một trục; dải số phía trên vẫn là giá trị gốc.',
+        raw:'Mỗi đường dùng một price scale độc lập và tự auto-fit theo đơn vị gốc; vị trí tương đối giữa hai đường không biểu thị chênh lệch giá trị.'
+      },
       about: {
         h1:'Biểu đồ tổng hợp', h2:'Nguồn dữ liệu', h3:'Lưu ý',
         p1:'Một biểu đồ duy nhất so sánh VNINDEX, P/E toàn thị trường, USD/VND, lãi suất liên ngân hàng qua đêm và lượng bơm/hút ròng qua OMO, tín phiếu.',
@@ -88,7 +91,7 @@ export const DICT = {
     brandSub: 'định giá thị trường HOSE',
     range: { '1m':'1 tháng', '6m':'6 tháng', '1y':'1 năm', '3y':'3 năm', '5y':'5 năm', '10y':'10 năm', all:'Tất cả' },
     rangeShort: { '1m':'1TH', '6m':'6TH', '1y':'1N', '3y':'3N', '5y':'5N', '10y':'10N', all:'TC' },
-    view:  { index:'Chuẩn hoá 0–100' },
+    view:  { index:'Chuẩn hoá 0–100', raw:'Đơn vị riêng' },
     viewTip: {
       dual:'Chỉ số và định giá chung một khung, hai thang đo riêng',
       stack:'Mỗi chỉ tiêu một khung, chung trục thời gian',
@@ -150,7 +153,10 @@ export const DICT = {
       metricTip:'Toggle comparison series',
       key: { index:'VNINDEX', pe:'P/E', usdvnd:'USD/VND', overnight:'Overnight interbank rate', net:'Net OMO/bill injection' },
       col: { date:'Date', index:'VNINDEX', pe:'P/E', usd:'USD/VND', ib:'O/N rate', net:'Net injection' },
-      note:'Each series is scaled from 0–100 over its own selected-period range so all five remain readable on one axis; the strip above retains raw values.',
+      note: {
+        index:'Each series is scaled from 0–100 over its own selected-period range so all five remain readable on one axis; the strip above retains raw values.',
+        raw:'Each line uses an independent auto-fit price scale in its original unit; relative vertical positions do not represent value differences.'
+      },
       about: {
         h1:'Market overview', h2:'Data sources', h3:'Notes',
         p1:'One chart compares VNINDEX, market P/E, USD/VND, the overnight interbank rate, and net liquidity injection or withdrawal through OMO and bills.',
@@ -224,7 +230,7 @@ export const DICT = {
     brandSub: 'HOSE market valuation',
     range: { '1m':'1M', '6m':'6M', '1y':'1Y', '3y':'3Y', '5y':'5Y', '10y':'10Y', all:'All' },
     rangeShort: { '1m':'1M', '6m':'6M', '1y':'1Y', '3y':'3Y', '5y':'5Y', '10y':'10Y', all:'All' },
-    view:  { index:'Scaled 0–100' },
+    view:  { index:'Scaled 0–100', raw:'Own units' },
     viewTip: {
       dual:'Index and valuation in one pane, separate scales',
       stack:'One pane per measure, shared time axis',

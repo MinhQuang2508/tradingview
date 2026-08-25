@@ -57,7 +57,7 @@ const state = Object.assign({
 }, JSON.parse(localStorage.getItem(LS) || '{}'));
 // Từ bản này chỉ còn một workspace tổng hợp; bỏ lựa chọn workspace đã lưu cũ.
 state.ws = 'market';
-state.view.market = 'index';
+if (!['index', 'raw'].includes(state.view.market)) state.view.market = 'index';
 state.metrics.market = ['pe', 'usdvnd', 'overnight', 'net'];
 // Object.assign chỉ merge tầng ngoài; người dùng cũ chưa có khóa workspace mới.
 state.view.ib ||= 'stack';
@@ -331,7 +331,7 @@ function renderLegend() {
       : state.ws === 'ib' ? t.ib.key : t.omo.key;
   $('#legend').innerHTML = names.map(n =>
     `<span class="key"><i style="background:var(${SERIES[n].cssVar})"></i>${label[n]}</span>`).join('');
-  const note = state.ws === 'market' ? t.market.note
+  const note = state.ws === 'market' ? t.market.note[view()]
     : state.ws === 'val' ? t.note[view()]
     : state.ws === 'fx' ? t.fx.note[view()] : state.ws === 'ib' ? t.ib.note[view()] : t.omo.note[view()];
   const rows = sliceRange();
