@@ -12,11 +12,13 @@ export const DICT = {
     market: {
       m: { pe:'P/E', usdvnd:'USD/VND', overnight:'LNH O/N', net:'Hút/Bơm' },
       metricTip:'Bật hoặc tắt chuỗi so sánh',
+      axisLeft:'Đang hiển thị trên trục trái', axisPick:'Chọn làm trục trái',
+      left:'Trục trái', right:'Trục phải',
       key: { index:'VNINDEX', pe:'P/E', usdvnd:'USD/VND', overnight:'Lãi suất LNH qua đêm', net:'Tín phiếu/OMO hút bơm ròng' },
       col: { date:'Ngày', index:'VNINDEX', pe:'P/E', usd:'USD/VND', ib:'LNH O/N', net:'Hút/Bơm' },
       note: {
         index:'Mỗi chuỗi được chuẩn hóa 0–100 theo mức thấp/cao trong kỳ để năm đường cùng đọc được trên một trục; dải số phía trên vẫn là giá trị gốc.',
-        raw:'Mỗi đường dùng một price scale độc lập và tự auto-fit theo đơn vị gốc; vị trí tương đối giữa hai đường không biểu thị chênh lệch giá trị.'
+        raw:'VNINDEX dùng trục phải; chỉ báo có dấu ← dùng trục trái. Bấm một chỉ báo để đổi trục trái; ba đường còn lại vẫn tự auto-fit theo scale ẩn.'
       },
       about: {
         h1:'Biểu đồ tổng hợp', h2:'Nguồn dữ liệu', h3:'Lưu ý',
@@ -151,11 +153,13 @@ export const DICT = {
     market: {
       m: { pe:'P/E', usdvnd:'USD/VND', overnight:'O/N rate', net:'Injection' },
       metricTip:'Toggle comparison series',
+      axisLeft:'Shown on the left axis', axisPick:'Use as left axis',
+      left:'Left axis', right:'Right axis',
       key: { index:'VNINDEX', pe:'P/E', usdvnd:'USD/VND', overnight:'Overnight interbank rate', net:'Net OMO/bill injection' },
       col: { date:'Date', index:'VNINDEX', pe:'P/E', usd:'USD/VND', ib:'O/N rate', net:'Net injection' },
       note: {
         index:'Each series is scaled from 0–100 over its own selected-period range so all five remain readable on one axis; the strip above retains raw values.',
-        raw:'Each line uses an independent auto-fit price scale in its original unit; relative vertical positions do not represent value differences.'
+        raw:'VNINDEX uses the right axis; the ← indicator uses the left. Click an indicator to change the left axis; the other three retain hidden auto-fit scales.'
       },
       about: {
         h1:'Market overview', h2:'Data sources', h3:'Notes',

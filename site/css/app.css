@@ -91,6 +91,8 @@ body{
 }
 .seg button:hover{color:var(--text);background:var(--panel-3)}
 .seg button[aria-pressed="true"]{background:var(--panel-3);color:var(--text);font-weight:600}
+.seg button.is-axis{box-shadow:inset 0 0 0 1px var(--focus);color:var(--text)}
+.seg button.is-axis i{font-style:normal;margin-left:5px;color:var(--focus);font-weight:700}
 .lbl-short{display:none}
 
 /* chuyển bộ dữ liệu — cấp cao hơn mọi bộ lọc khác nên tách khỏi .seg thường */
@@ -163,6 +165,9 @@ body{
 .legend-inline{display:inline-flex;align-items:center;gap:14px;flex:none}
 .key{display:inline-flex;align-items:center;gap:6px;flex:none}
 .key i{width:14px;height:2px;border-radius:1px;flex:none}
+.key-axis{color:var(--text-2)}
+.key b{font:600 8.5px/1 var(--f-ui);letter-spacing:.05em;text-transform:uppercase;
+  color:var(--text-3);border:1px solid var(--line);border-radius:3px;padding:2px 4px}
 .note{color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* -------------------------------------------------------- sidebar --- */

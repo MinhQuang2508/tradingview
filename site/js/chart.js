@@ -114,7 +114,7 @@ export class ValuationChart {
    * @param mode   'dual' | 'stack' | 'index'
    * @param active ['index','pe','pb'] — chỉ tiêu đang bật
    */
-  render(rows, mode, active, primary = 'index') {
+  render(rows, mode, active, primary = 'index', axisMetric = active[0]) {
     const range = this.chart.timeScale().getVisibleLogicalRange();
     const hadSeries = Object.keys(this.series).length > 0;
 
@@ -123,7 +123,7 @@ export class ValuationChart {
     // gỡ các pane thừa từ lần vẽ trước
     while (this.chart.panes().length > 1) this.chart.removePane(this.chart.panes().length - 1);
 
-    this.needLeftScale = mode === 'dual';
+    this.needLeftScale = mode === 'dual' || mode === 'raw';
     this.chart.priceScale('left').applyOptions({ visible: this.needLeftScale });
 
     const names = [primary, ...active];
@@ -145,18 +145,21 @@ export class ValuationChart {
       if (mode === 'index') priceScaleId = 'right';
       // Mỗi chuỗi một overlay price scale: thư viện tự fit theo đơn vị gốc của
       // từng chuỗi nhưng cả năm đường vẫn nằm trong cùng một pane.
-      if (mode === 'raw') priceScaleId = `raw-${name}`;
+      if (mode === 'raw') priceScaleId = name === primary ? 'right'
+        : name === axisMetric ? 'left' : `raw-${name}`;
+
+      const hasVisibleAxis = mode !== 'raw' || name === primary || name === axisMetric;
 
       const s = this.chart.addSeries(LWC.LineSeries, {
         color: cssv(spec.cssVar),
-        lineWidth: 2,
+        lineWidth: name === primary ? 3 : name === axisMetric ? 2 : 1,
         priceScaleId,
-        priceLineVisible: true,
+        priceLineVisible: hasVisibleAxis,
         priceLineWidth: 1,
         priceLineStyle: 2,
-        lastValueVisible: true,
+        lastValueVisible: hasVisibleAxis,
         crosshairMarkerVisible: true,
-        crosshairMarkerRadius: 3,
+        crosshairMarkerRadius: name === primary || name === axisMetric ? 4 : 3,
         priceFormat: { type: 'price', precision: spec.digits,
                        minMove: spec.digits ? 10 ** -spec.digits : 1 },
       }, paneIndex);

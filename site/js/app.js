@@ -47,18 +47,20 @@ const WS = {
 
 /* ------------------------------------------------------------ trạng thái --- */
 
-const LS = 'vnindex-pe:v2';
+const LS = 'vnindex-pe:v3';
 const state = Object.assign({
-  ws: 'market', lang: 'vi', theme: 'dark', range: '1y', tab: 'data',
+  ws: 'market', lang: 'vi', theme: 'dark', range: '1y', tab: 'data', axisMetric: 'pe',
   // Kiểu xem và chỉ tiêu đối chiếu tách riêng cho từng workspace: tỷ giá có ba
   // chuỗi lệch thang nhau hàng nghìn lần nên mặc định phải là xếp tầng.
-  view: { val: 'dual', fx: 'stack', ib: 'stack', omo: 'stack' },
-  metrics: { val: ['pe'], fx: ['dxy', 'usdcny'], ib: ['month1', 'month3'], omo: ['repoIn', 'billBal'] },
+  view: { market: 'raw', val: 'dual', fx: 'stack', ib: 'stack', omo: 'stack' },
+  metrics: { market: ['pe', 'usdvnd', 'overnight', 'net'], val: ['pe'], fx: ['dxy', 'usdcny'], ib: ['month1', 'month3'], omo: ['repoIn', 'billBal'] },
 }, JSON.parse(localStorage.getItem(LS) || '{}'));
 // Từ bản này chỉ còn một workspace tổng hợp; bỏ lựa chọn workspace đã lưu cũ.
 state.ws = 'market';
-if (!['index', 'raw'].includes(state.view.market)) state.view.market = 'index';
+if (!['index', 'raw'].includes(state.view.market)) state.view.market = 'raw';
 state.metrics.market = ['pe', 'usdvnd', 'overnight', 'net'];
+state.axisMetric = ['pe', 'usdvnd', 'overnight', 'net'].includes(state.axisMetric)
+  ? state.axisMetric : 'pe';
 // Object.assign chỉ merge tầng ngoài; người dùng cũ chưa có khóa workspace mới.
 state.view.ib ||= 'stack';
 state.metrics.ib ||= ['month1', 'month3'];
@@ -295,7 +297,9 @@ function renderChrome() {
     : state.ws === 'val' ? { pe: 'PE', pb: 'PB' }
     : state.ws === 'fx' ? t.fx.m : state.ws === 'ib' ? t.ib.m : t.omo.m;
   $('#metricSeg').innerHTML = cfg().optional.map(k =>
-    `<button type="button" data-v="${k}" aria-pressed="${metrics().includes(k)}">${mLabel[k]}</button>`).join('');
+    `<button type="button" data-v="${k}" class="${view() === 'raw' && state.axisMetric === k ? 'is-axis' : ''}"
+      title="${view() === 'raw' ? (state.axisMetric === k ? t.market.axisLeft : t.market.axisPick) : mLabel[k]}"
+      aria-pressed="${metrics().includes(k)}">${mLabel[k]}${view() === 'raw' && state.axisMetric === k ? '<i>←</i>' : ''}</button>`).join('');
   $('#metricSeg').title = state.ws === 'val' ? t.metricTip
     : state.ws === 'market' ? t.market.metricTip
     : state.ws === 'fx' ? t.fx.metricTip : state.ws === 'ib' ? t.ib.metricTip : t.omo.metricTip;
@@ -330,7 +334,10 @@ function renderLegend() {
       ? { usdvnd: t.fx.keyUsd, dxy: t.fx.keyDxy, usdcny: t.fx.keyCny, vcbsell: t.fx.keyVcb }
       : state.ws === 'ib' ? t.ib.key : t.omo.key;
   $('#legend').innerHTML = names.map(n =>
-    `<span class="key"><i style="background:var(${SERIES[n].cssVar})"></i>${label[n]}</span>`).join('');
+    `<span class="key${view() === 'raw' && (n === cfg().primary || n === state.axisMetric) ? ' key-axis' : ''}">
+      <i style="background:var(${SERIES[n].cssVar})"></i>${label[n]}
+      ${view() === 'raw' && n === cfg().primary ? `<b>${t.market.right}</b>` : ''}
+      ${view() === 'raw' && n === state.axisMetric ? `<b>${t.market.left}</b>` : ''}</span>`).join('');
   const note = state.ws === 'market' ? t.market.note[view()]
     : state.ws === 'val' ? t.note[view()]
     : state.ws === 'fx' ? t.fx.note[view()] : state.ws === 'ib' ? t.ib.note[view()] : t.omo.note[view()];
@@ -624,7 +631,7 @@ function tableColumns() {
 
 function renderAll() {
   const rows = sliceRange();
-  chart.render(rows, view(), metrics(), cfg().primary);
+  chart.render(rows, view(), metrics(), cfg().primary, state.axisMetric);
   chart.setLocale(t.locale);
   table.setColumns(tableColumns());
   table.setRows(ROWS(), t);
@@ -682,6 +689,12 @@ function boot() {
     save(); renderChrome(); renderAll();
   });
   onSeg('#metricSeg', v => {
+    if (state.ws === 'market' && view() === 'raw') {
+      state.axisMetric = v;
+      if (!metrics().includes(v)) state.metrics.market = [...metrics(), v];
+      save(); renderChrome(); renderAll();
+      return;
+    }
     const cur = metrics();
     if (view() === 'dual') {                             // chọn đơn
       state.metrics[state.ws] = [v];

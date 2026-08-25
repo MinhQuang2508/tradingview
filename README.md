@@ -11,6 +11,8 @@ dải số phía trên và bảng vẫn giữ giá trị gốc.
 
 Có thể chuyển sang **Đơn vị riêng** để mỗi đường dùng một price scale độc lập,
 tự auto-fit theo dữ liệu gốc. Nút `⤢` auto-fit lại cả thời gian và price scale.
+Ở chế độ này VNINDEX dùng trục phải, còn chỉ báo có dấu `←` dùng trục trái;
+bấm P/E, USD/VND, LNH O/N hoặc Hút/Bơm để đổi chỉ báo trên trục trái.
 
 | | |
 |---|---|
