@@ -89,8 +89,8 @@ export const DICT = {
         l3:'Yahoo lấy tỷ giá theo múi giờ giao dịch quốc tế nên ngày cuối chuỗi có thể lệch một phiên so với bảng trong nước.'
       }
     },
-    docTitle: 'VNINDEX · P/E · P/B — định giá thị trường HOSE',
-    brandSub: 'định giá thị trường HOSE',
+    docTitle: 'Vietnam Market Pulse — VNINDEX, định giá và thanh khoản',
+    brandSub: 'market intelligence terminal',
     range: { '1m':'1 tháng', '6m':'6 tháng', '1y':'1 năm', '3y':'3 năm', '5y':'5 năm', '10y':'10 năm', all:'Tất cả' },
     rangeShort: { '1m':'1TH', '6m':'6TH', '1y':'1N', '3y':'3N', '5y':'5N', '10y':'10N', all:'TC' },
     view:  { index:'Chuẩn hoá 0–100', raw:'Đơn vị riêng' },
@@ -230,8 +230,8 @@ export const DICT = {
         l3:'Yahoo timestamps FX in international trading hours, so the final point can sit one session away from domestic boards.'
       }
     },
-    docTitle: 'VNINDEX · P/E · P/B — HOSE market valuation',
-    brandSub: 'HOSE market valuation',
+    docTitle: 'Vietnam Market Pulse — VNINDEX, valuation and liquidity',
+    brandSub: 'market intelligence terminal',
     range: { '1m':'1M', '6m':'6M', '1y':'1Y', '3y':'3Y', '5y':'5Y', '10y':'10Y', all:'All' },
     rangeShort: { '1m':'1M', '6m':'6M', '1y':'1Y', '3y':'3Y', '5y':'5Y', '10y':'10Y', all:'All' },
     view:  { index:'Scaled 0–100', raw:'Own units' },
