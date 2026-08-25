@@ -9,10 +9,13 @@ Biểu đồ duy nhất gồm năm đường: **VNINDEX**, **P/E toàn thị tr�
 chuỗi khác đơn vị, mỗi đường được chuẩn hóa 0–100 theo biên độ trong kỳ đang xem;
 dải số phía trên và bảng vẫn giữ giá trị gốc.
 
-Có thể chuyển sang **Đơn vị riêng** để mỗi đường dùng một price scale độc lập,
+Có thể chuyển sang **Chồng 2 trục** để mỗi đường dùng một price scale độc lập,
 tự auto-fit theo dữ liệu gốc. Nút `⤢` auto-fit lại cả thời gian và price scale.
 Ở chế độ này VNINDEX dùng trục phải, còn chỉ báo có dấu `←` dùng trục trái;
 bấm P/E, USD/VND, LNH O/N hoặc Hút/Bơm để đổi chỉ báo trên trục trái.
+
+Chế độ mặc định **Xếp dọc** đặt VNINDEX ở panel chính và bốn chỉ báo ở bốn
+panel bên dưới. Tất cả dùng chung trục thời gian nhưng giữ price scale riêng.
 
 | | |
 |---|---|

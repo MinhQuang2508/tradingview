@@ -163,6 +163,14 @@ body{
   border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;
   background:var(--panel);box-shadow:0 10px 35px rgba(0,0,0,.16)}
 #chart{flex:1 1 auto;min-height:0;position:relative;overflow:hidden}
+.pane-labels{position:absolute;z-index:4;inset:10px 72px 42px 14px;display:grid;pointer-events:none}
+.pane-labels span{align-self:start;justify-self:start;display:inline-flex;align-items:center;gap:7px;
+  color:var(--series-color);background:rgba(7,10,16,.76);border:1px solid var(--line);
+  border-left:2px solid var(--series-color);border-radius:5px;padding:3px 7px;
+  font-size:10px;font-weight:600;letter-spacing:.045em;text-transform:uppercase;
+  box-shadow:0 3px 12px rgba(0,0,0,.16);backdrop-filter:blur(6px)}
+.pane-labels span b{color:var(--text-3);font-size:8.5px;font-weight:500}
+:root[data-theme="light"] .pane-labels span{background:rgba(255,255,255,.82)}
 .chart-foot{
   height:32px;display:flex;align-items:center;gap:14px;padding:0 14px;
   border-top:1px solid var(--line);background:var(--panel);

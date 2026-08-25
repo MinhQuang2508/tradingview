@@ -15,10 +15,12 @@ export const DICT = {
       axisLeft:'Đang hiển thị trên trục trái', axisPick:'Chọn làm trục trái',
       left:'Trục trái', right:'Trục phải',
       key: { index:'VNINDEX', pe:'P/E', usdvnd:'USD/VND', overnight:'Lãi suất LNH qua đêm', net:'Tín phiếu/OMO hút bơm ròng' },
+      unit: { index:'điểm', pe:'lần', usdvnd:'đồng', overnight:'%/năm', net:'tỷ đồng' },
       col: { date:'Ngày', index:'VNINDEX', pe:'P/E', usd:'USD/VND', ib:'LNH O/N', net:'Hút/Bơm' },
       note: {
         index:'Mỗi chuỗi được chuẩn hóa 0–100 theo mức thấp/cao trong kỳ để năm đường cùng đọc được trên một trục; dải số phía trên vẫn là giá trị gốc.',
-        raw:'VNINDEX dùng trục phải; chỉ báo có dấu ← dùng trục trái. Bấm một chỉ báo để đổi trục trái; ba đường còn lại vẫn tự auto-fit theo scale ẩn.'
+        raw:'VNINDEX dùng trục phải; chỉ báo có dấu ← dùng trục trái. Bấm một chỉ báo để đổi trục trái; ba đường còn lại vẫn tự auto-fit theo scale ẩn.',
+        stack:'Năm panel xếp dọc và dùng chung trục thời gian: VNINDEX ở panel chính, bốn chỉ báo bên dưới giữ nguyên đơn vị và price scale riêng.'
       },
       about: {
         h1:'Biểu đồ tổng hợp', h2:'Nguồn dữ liệu', h3:'Lưu ý',
@@ -93,7 +95,7 @@ export const DICT = {
     brandSub: 'market intelligence terminal',
     range: { '1m':'1 tháng', '6m':'6 tháng', '1y':'1 năm', '3y':'3 năm', '5y':'5 năm', '10y':'10 năm', all:'Tất cả' },
     rangeShort: { '1m':'1TH', '6m':'6TH', '1y':'1N', '3y':'3N', '5y':'5N', '10y':'10N', all:'TC' },
-    view:  { index:'Chuẩn hoá 0–100', raw:'Đơn vị riêng' },
+    view:  { stack:'Xếp dọc', raw:'Chồng 2 trục', index:'Chuẩn hoá 0–100' },
     viewTip: {
       dual:'Chỉ số và định giá chung một khung, hai thang đo riêng',
       stack:'Mỗi chỉ tiêu một khung, chung trục thời gian',
@@ -156,10 +158,12 @@ export const DICT = {
       axisLeft:'Shown on the left axis', axisPick:'Use as left axis',
       left:'Left axis', right:'Right axis',
       key: { index:'VNINDEX', pe:'P/E', usdvnd:'USD/VND', overnight:'Overnight interbank rate', net:'Net OMO/bill injection' },
+      unit: { index:'points', pe:'times', usdvnd:'VND', overnight:'% p.a.', net:'VND bn' },
       col: { date:'Date', index:'VNINDEX', pe:'P/E', usd:'USD/VND', ib:'O/N rate', net:'Net injection' },
       note: {
         index:'Each series is scaled from 0–100 over its own selected-period range so all five remain readable on one axis; the strip above retains raw values.',
-        raw:'VNINDEX uses the right axis; the ← indicator uses the left. Click an indicator to change the left axis; the other three retain hidden auto-fit scales.'
+        raw:'VNINDEX uses the right axis; the ← indicator uses the left. Click an indicator to change the left axis; the other three retain hidden auto-fit scales.',
+        stack:'Five vertically stacked panes share one time axis: VNINDEX leads, while the four lower indicators retain their original units and independent price scales.'
       },
       about: {
         h1:'Market overview', h2:'Data sources', h3:'Notes',
@@ -234,7 +238,7 @@ export const DICT = {
     brandSub: 'market intelligence terminal',
     range: { '1m':'1M', '6m':'6M', '1y':'1Y', '3y':'3Y', '5y':'5Y', '10y':'10Y', all:'All' },
     rangeShort: { '1m':'1M', '6m':'6M', '1y':'1Y', '3y':'3Y', '5y':'5Y', '10y':'10Y', all:'All' },
-    view:  { index:'Scaled 0–100', raw:'Own units' },
+    view:  { stack:'Vertical panes', raw:'Dual-axis overlay', index:'Scaled 0–100' },
     viewTip: {
       dual:'Index and valuation in one pane, separate scales',
       stack:'One pane per measure, shared time axis',

@@ -47,17 +47,17 @@ const WS = {
 
 /* ------------------------------------------------------------ trạng thái --- */
 
-const LS = 'vnindex-pe:v3';
+const LS = 'vnindex-pe:v4';
 const state = Object.assign({
   ws: 'market', lang: 'vi', theme: 'dark', range: '1y', tab: 'data', axisMetric: 'pe',
   // Kiểu xem và chỉ tiêu đối chiếu tách riêng cho từng workspace: tỷ giá có ba
   // chuỗi lệch thang nhau hàng nghìn lần nên mặc định phải là xếp tầng.
-  view: { market: 'raw', val: 'dual', fx: 'stack', ib: 'stack', omo: 'stack' },
+  view: { market: 'stack', val: 'dual', fx: 'stack', ib: 'stack', omo: 'stack' },
   metrics: { market: ['pe', 'usdvnd', 'overnight', 'net'], val: ['pe'], fx: ['dxy', 'usdcny'], ib: ['month1', 'month3'], omo: ['repoIn', 'billBal'] },
 }, JSON.parse(localStorage.getItem(LS) || '{}'));
 // Từ bản này chỉ còn một workspace tổng hợp; bỏ lựa chọn workspace đã lưu cũ.
 state.ws = 'market';
-if (!['index', 'raw'].includes(state.view.market)) state.view.market = 'raw';
+if (!['index', 'raw', 'stack'].includes(state.view.market)) state.view.market = 'stack';
 state.metrics.market = ['pe', 'usdvnd', 'overnight', 'net'];
 state.axisMetric = ['pe', 'usdvnd', 'overnight', 'net'].includes(state.axisMetric)
   ? state.axisMetric : 'pe';
@@ -338,6 +338,16 @@ function renderLegend() {
       <i style="background:var(${SERIES[n].cssVar})"></i>${label[n]}
       ${view() === 'raw' && n === cfg().primary ? `<b>${t.market.right}</b>` : ''}
       ${view() === 'raw' && n === state.axisMetric ? `<b>${t.market.left}</b>` : ''}</span>`).join('');
+  const paneLabels = $('#paneLabels');
+  if (state.ws === 'market' && view() === 'stack') {
+    paneLabels.classList.remove('hidden');
+    paneLabels.style.gridTemplateRows = `2fr repeat(${names.length - 1}, 1fr)`;
+    paneLabels.innerHTML = names.map(n => `<span style="--series-color:var(${SERIES[n].cssVar})">
+      ${t.market.key[n]}<b>${t.market.unit[n]}</b></span>`).join('');
+  } else {
+    paneLabels.classList.add('hidden');
+    paneLabels.innerHTML = '';
+  }
   const note = state.ws === 'market' ? t.market.note[view()]
     : state.ws === 'val' ? t.note[view()]
     : state.ws === 'fx' ? t.fx.note[view()] : state.ws === 'ib' ? t.ib.note[view()] : t.omo.note[view()];

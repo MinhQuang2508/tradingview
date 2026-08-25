@@ -152,7 +152,8 @@ export class ValuationChart {
 
       const s = this.chart.addSeries(LWC.LineSeries, {
         color: cssv(spec.cssVar),
-        lineWidth: name === primary ? 3 : name === axisMetric ? 2 : 1,
+        lineWidth: mode === 'stack' ? (name === primary ? 3 : 2)
+          : name === primary ? 3 : name === axisMetric ? 2 : 1,
         priceScaleId,
         priceLineVisible: hasVisibleAxis,
         priceLineWidth: 1,
