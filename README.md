@@ -1,6 +1,11 @@
-# VNINDEX · P/E · P/B · Tỷ giá · Thanh khoản
+# VNINDEX · Định giá · Thanh khoản · Giá vàng
 
 Terminal web tổng hợp định giá và thanh khoản thị trường Việt Nam trên một biểu đồ.
+
+Tab **Giá vàng** là chart độc lập gồm vàng quốc tế USD/oz, giá thế giới quy đổi
+sang triệu đồng/lượng, giá mua/bán vàng miếng SJC TP.HCM và premium SJC so với
+thế giới. Chuỗi quốc tế ghép benchmark London PM của LBMA với COMEX `GC=F`;
+chuỗi trong nước lấy trực tiếp API biểu đồ chính thức của SJC.
 
 **→ https://minhquang2508.github.io/tradingview/**
 
@@ -102,6 +107,7 @@ python3 scripts/fetch_data.py     # VNINDEX + P/E + P/B
 python3 scripts/fetch_fx.py       # USD/VND + DXY + USD/CNY
 python3 scripts/fetch_interbank.py # lãi suất liên ngân hàng SBV
 python3 scripts/fetch_omo.py       # OMO và tín phiếu SBV
+python3 scripts/fetch_gold.py      # LBMA/COMEX + vàng miếng SJC
 python3 -m http.server -d site 8000
 ```
 

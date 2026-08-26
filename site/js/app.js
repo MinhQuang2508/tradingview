@@ -43,6 +43,11 @@ const WS = {
     metrics: ['repoIn', 'billBal'],
     fromKey: null,
   },
+  gold: {
+    file: 'data/gold.json', primary: 'xau',
+    optional: ['worldVnd', 'sjcBuy', 'sjcSell', 'premium'],
+    metrics: ['worldVnd', 'sjcBuy', 'sjcSell', 'premium'], fromKey: null,
+  },
 };
 
 /* ------------------------------------------------------------ trạng thái --- */
@@ -52,11 +57,12 @@ const state = Object.assign({
   ws: 'market', lang: 'vi', theme: 'dark', range: '1y', tab: 'data', axisMetric: 'pe',
   // Kiểu xem và chỉ tiêu đối chiếu tách riêng cho từng workspace: tỷ giá có ba
   // chuỗi lệch thang nhau hàng nghìn lần nên mặc định phải là xếp tầng.
-  view: { market: 'stack', val: 'dual', fx: 'stack', ib: 'stack', omo: 'stack' },
-  metrics: { market: ['pe', 'usdvnd', 'overnight', 'net'], val: ['pe'], fx: ['dxy', 'usdcny'], ib: ['month1', 'month3'], omo: ['repoIn', 'billBal'] },
+  view: { market: 'stack', gold: 'stack', val: 'dual', fx: 'stack', ib: 'stack', omo: 'stack' },
+  metrics: { market: ['pe', 'usdvnd', 'overnight', 'net'], gold: ['worldVnd', 'sjcBuy', 'sjcSell', 'premium'], val: ['pe'], fx: ['dxy', 'usdcny'], ib: ['month1', 'month3'], omo: ['repoIn', 'billBal'] },
 }, JSON.parse(localStorage.getItem(LS) || '{}'));
-// Từ bản này chỉ còn một workspace tổng hợp; bỏ lựa chọn workspace đã lưu cũ.
-state.ws = 'market';
+const requestedWs = new URLSearchParams(location.search).get('tab');
+if (['market', 'gold'].includes(requestedWs)) state.ws = requestedWs;
+if (!['market', 'gold'].includes(state.ws)) state.ws = 'market';
 if (!['index', 'raw', 'stack'].includes(state.view.market)) state.view.market = 'stack';
 state.metrics.market = ['pe', 'usdvnd', 'overnight', 'net'];
 state.axisMetric = ['pe', 'usdvnd', 'overnight', 'net'].includes(state.axisMetric)
@@ -66,12 +72,15 @@ state.view.ib ||= 'stack';
 state.metrics.ib ||= ['month1', 'month3'];
 state.view.omo ||= 'stack';
 state.metrics.omo ||= ['repoIn', 'billBal'];
+state.view.gold ||= 'stack';
+state.metrics.gold ||= ['worldVnd', 'sjcBuy', 'sjcSell', 'premium'];
+if (!WS[state.ws].optional.includes(state.axisMetric)) state.axisMetric = WS[state.ws].optional[0];
 
 const save = () => localStorage.setItem(LS, JSON.stringify(state));
 let t = DICT[state.lang];
 
-const store = { val: null, fx: null, ib: null, omo: null, market: null };
-const rowsOf = { val: [], fx: [], ib: [], omo: [], market: [] };
+const store = { val: null, fx: null, ib: null, omo: null, market: null, gold: null };
+const rowsOf = { val: [], fx: [], ib: [], omo: [], market: [], gold: [] };
 let live = { on: false, index: null, at: null, fail: 0, disabled: false, probed: false };
 
 const $ = s => document.querySelector(s);
@@ -191,6 +200,7 @@ async function loadWs(ws, quiet = false) {
   const keys = ws === 'val' ? ['i', 'pe', 'pb']
     : ws === 'fx' ? ['usdvnd', 'dxy', 'usdcny']
     : ws === 'ib' ? ['overnight', 'week_1', 'week_2', 'month_1', 'month_3', 'month_6', 'month_9']
+    : ws === 'gold' ? ['xau', 'world_vnd', 'sjc_buy', 'sjc_sell', 'premium']
     : ['net', 'repo_injection', 'repo_outstanding', 'bill_outstanding'];
 
   rowsOf[ws] = json.series.map((r, k, arr) => {
@@ -200,7 +210,8 @@ async function loadWs(ws, quiet = false) {
     if (q) { out.vcb_buy = q.buy; out.vcb_sell = q.sell; }
     for (const key of keys) {
       out['d_' + key] = (r[key] == null || p?.[key] == null) ? null
-        : (ws === 'ib' || ws === 'omo') ? r[key] - p[key] : (r[key] / p[key] - 1) * 100;
+        : (ws === 'ib' || ws === 'omo' || (ws === 'gold' && key === 'premium'))
+          ? r[key] - p[key] : (r[key] / p[key] - 1) * 100;
     }
     return out;
   });
@@ -295,14 +306,16 @@ function renderChrome() {
 
   const mLabel = state.ws === 'market' ? t.market.m
     : state.ws === 'val' ? { pe: 'PE', pb: 'PB' }
-    : state.ws === 'fx' ? t.fx.m : state.ws === 'ib' ? t.ib.m : t.omo.m;
+    : state.ws === 'fx' ? t.fx.m : state.ws === 'ib' ? t.ib.m
+    : state.ws === 'gold' ? t.gold.m : t.omo.m;
   $('#metricSeg').innerHTML = cfg().optional.map(k =>
     `<button type="button" data-v="${k}" class="${view() === 'raw' && state.axisMetric === k ? 'is-axis' : ''}"
       title="${view() === 'raw' ? (state.axisMetric === k ? t.market.axisLeft : t.market.axisPick) : mLabel[k]}"
       aria-pressed="${metrics().includes(k)}">${mLabel[k]}${view() === 'raw' && state.axisMetric === k ? '<i>←</i>' : ''}</button>`).join('');
   $('#metricSeg').title = state.ws === 'val' ? t.metricTip
     : state.ws === 'market' ? t.market.metricTip
-    : state.ws === 'fx' ? t.fx.metricTip : state.ws === 'ib' ? t.ib.metricTip : t.omo.metricTip;
+    : state.ws === 'fx' ? t.fx.metricTip : state.ws === 'ib' ? t.ib.metricTip
+    : state.ws === 'gold' ? t.gold.metricTip : t.omo.metricTip;
 
   $$('.tab').forEach(b => {
     b.textContent = t.tab[b.dataset.tab];
@@ -332,25 +345,26 @@ function renderLegend() {
     ? { index: t.keyIndex, pe: t.keyPe, pb: t.keyPb }
     : state.ws === 'fx'
       ? { usdvnd: t.fx.keyUsd, dxy: t.fx.keyDxy, usdcny: t.fx.keyCny, vcbsell: t.fx.keyVcb }
-      : state.ws === 'ib' ? t.ib.key : t.omo.key;
+      : state.ws === 'ib' ? t.ib.key : state.ws === 'gold' ? t.gold.key : t.omo.key;
   $('#legend').innerHTML = names.map(n =>
     `<span class="key${view() === 'raw' && (n === cfg().primary || n === state.axisMetric) ? ' key-axis' : ''}">
       <i style="background:var(${SERIES[n].cssVar})"></i>${label[n]}
       ${view() === 'raw' && n === cfg().primary ? `<b>${t.market.right}</b>` : ''}
       ${view() === 'raw' && n === state.axisMetric ? `<b>${t.market.left}</b>` : ''}</span>`).join('');
   const paneLabels = $('#paneLabels');
-  if (state.ws === 'market' && view() === 'stack') {
+  if ((state.ws === 'market' || state.ws === 'gold') && view() === 'stack') {
     paneLabels.classList.remove('hidden');
     paneLabels.style.gridTemplateRows = `2fr repeat(${names.length - 1}, 1fr)`;
     paneLabels.innerHTML = names.map(n => `<span style="--series-color:var(${SERIES[n].cssVar})">
-      ${t.market.key[n]}<b>${t.market.unit[n]}</b></span>`).join('');
+      ${(state.ws === 'gold' ? t.gold.key : t.market.key)[n]}<b>${(state.ws === 'gold' ? t.gold.unit : t.market.unit)[n]}</b></span>`).join('');
   } else {
     paneLabels.classList.add('hidden');
     paneLabels.innerHTML = '';
   }
   const note = state.ws === 'market' ? t.market.note[view()]
     : state.ws === 'val' ? t.note[view()]
-    : state.ws === 'fx' ? t.fx.note[view()] : state.ws === 'ib' ? t.ib.note[view()] : t.omo.note[view()];
+    : state.ws === 'fx' ? t.fx.note[view()] : state.ws === 'ib' ? t.ib.note[view()]
+    : state.ws === 'gold' ? t.gold.note[view()] : t.omo.note[view()];
   const rows = sliceRange();
   const bits = [];
   if (state.ws === 'val' && rows.length) {
@@ -405,6 +419,19 @@ function renderReadout(row) {
         + `<span class="ro-v num c-s${i + 1}">${fmt(row[key], digits)}${row[key] == null ? '' : unit}</span>`
         + `<span class="ro-d num ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}">`
         + `${delta == null ? '—' : `${delta > 0 ? '+' : ''}${fmt(delta)}${name === 'overnight' ? ' đpt' : name === 'net' ? ' tỷ' : '%'}`}</span></div>`;
+    }).join('');
+    return;
+  }
+
+  if (state.ws === 'gold') {
+    const names = [cfg().primary, ...metrics()];
+    $('#readout').innerHTML = roItem(t.roDate, fdate(row.d)) + names.map((name, i) => {
+      const key = SERIES[name].key, delta = row['d_' + key];
+      const suffix = name === 'xau' ? ' USD' : ' tr';
+      return `<div class="ro"><span class="ro-k c-s${i + 1}">${t.gold.key[name]}</span>`
+        + `<span class="ro-v num c-s${i + 1}">${fmt(row[key], 2)}${row[key] == null ? '' : suffix}</span>`
+        + `<span class="ro-d num ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}">`
+        + `${delta == null ? '—' : `${delta > 0 ? '+' : ''}${fmt(delta)}${name === 'premium' ? ' tr' : '%'}`}</span></div>`;
     }).join('');
     return;
   }
@@ -500,6 +527,12 @@ function renderStats() {
       const current = [...rows].reverse().find(r => r[key] != null)?.[key];
       box.push(statCard(t.market.key[name], current, stats(rows.map(r => r[key])), SERIES[name].digits, true));
     }
+  } else if (state.ws === 'gold') {
+    for (const name of [cfg().primary, ...metrics()]) {
+      const key = SERIES[name].key;
+      const current = [...rows].reverse().find(r => r[key] != null)?.[key];
+      box.push(statCard(t.gold.key[name], current, stats(rows.map(r => r[key])), 2, true));
+    }
   } else if (state.ws === 'omo') {
     for (const name of [cfg().primary, ...metrics()]) {
       const key = SERIES[name].key;
@@ -538,6 +571,12 @@ function renderAbout() {
   const d = DATA();
   if (state.ws === 'market') {
     const a = t.market.about;
+    $('#pane-about').innerHTML = `<div class="doc"><h4>${a.h1}</h4><p>${a.p1}</p>
+      <h4>${a.h2}</h4><p>${a.p2}</p><h4>${a.h3}</h4><ul><li>${a.l1}</li><li>${a.l2}</li></ul></div>`;
+    return;
+  }
+  if (state.ws === 'gold') {
+    const a = t.gold.about;
     $('#pane-about').innerHTML = `<div class="doc"><h4>${a.h1}</h4><p>${a.p1}</p>
       <h4>${a.h2}</h4><p>${a.p2}</p><h4>${a.h3}</h4><ul><li>${a.l1}</li><li>${a.l2}</li></ul></div>`;
     return;
@@ -597,6 +636,14 @@ function tableColumns() {
       { key: 'usdvnd', label: c.usd, digits: 0 },
       { key: 'overnight', label: c.ib, digits: 2 },
       { key: 'net', label: c.net, digits: 0 },
+    ];
+  }
+  if (state.ws === 'gold') {
+    const c = t.gold.col;
+    return [
+      { key:'d', label:c.date, type:'date' }, { key:'xau', label:c.xau, digits:2 },
+      { key:'world_vnd', label:c.world, digits:2 }, { key:'sjc_sell', label:c.sell, digits:2 },
+      { key:'premium', label:c.premium, digits:2 },
     ];
   }
   if (state.ws === 'omo') {
@@ -662,6 +709,7 @@ function onSeg(sel, fn) {
 async function switchWs(ws) {
   if (ws === state.ws) return;
   state.ws = ws; save();
+  if (!cfg().optional.includes(state.axisMetric)) state.axisMetric = cfg().optional[0];
   if (!store[ws]) {
     try { await loadWs(ws, true); } catch (err) {
       $('#chartNote').textContent = `Không tải được dữ liệu: ${err.message}`;
@@ -699,9 +747,9 @@ function boot() {
     save(); renderChrome(); renderAll();
   });
   onSeg('#metricSeg', v => {
-    if (state.ws === 'market' && view() === 'raw') {
+    if (view() === 'raw') {
       state.axisMetric = v;
-      if (!metrics().includes(v)) state.metrics.market = [...metrics(), v];
+      if (!metrics().includes(v)) state.metrics[state.ws] = [...metrics(), v];
       save(); renderChrome(); renderAll();
       return;
     }

@@ -44,10 +44,12 @@ jobs:
           cp site/data/fx.json /tmp/fx_truoc.json
           cp site/data/interbank.json /tmp/interbank_truoc.json
           cp site/data/omo.json /tmp/omo_truoc.json
+          cp site/data/gold.json /tmp/gold_truoc.json
           python3 scripts/fetch_data.py
           python3 scripts/fetch_fx.py
           python3 scripts/fetch_interbank.py
           python3 scripts/fetch_omo.py
+          python3 scripts/fetch_gold.py
           python3 - <<'EOF'
           import json, shutil, sys
           def n_pe(p):
@@ -56,7 +58,8 @@ jobs:
           for moi, cu in (('site/data/vnindex_pe.json', '/tmp/pe_truoc.json'),
                           ('site/data/fx.json', '/tmp/fx_truoc.json'),
                           ('site/data/interbank.json', '/tmp/interbank_truoc.json'),
-                          ('site/data/omo.json', '/tmp/omo_truoc.json')):
+                          ('site/data/omo.json', '/tmp/omo_truoc.json'),
+                          ('site/data/gold.json', '/tmp/gold_truoc.json')):
               a, b = n_pe(moi), n_pe(cu)
               if a[0] < b[0] * 0.98 or a[1] < b[1] * 0.98:
                   print(f"::warning::{moi} ngắn đi ({a} < {b}) — giữ bản cũ")

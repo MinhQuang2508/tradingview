@@ -4,8 +4,8 @@
 export const DICT = {
   vi: {
     locale: 'vi-VN',
-    ws: { market:'Tổng hợp' },
-    wsTip: { market:'So sánh VNINDEX với định giá, tỷ giá và thanh khoản', val:'VNINDEX cùng P/E và P/B toàn thị trường HOSE',
+    ws: { market:'VNINDEX', gold:'GIÁ VÀNG' },
+    wsTip: { market:'So sánh VNINDEX với định giá, tỷ giá và thanh khoản', gold:'Biểu đồ vàng quốc tế và vàng miếng SJC', val:'VNINDEX cùng P/E và P/B toàn thị trường HOSE',
              fx:'USD/VND đặt cạnh sức mạnh đồng đô la và USD/CNY',
              ib:'Lãi suất giao dịch VND bình quân trên thị trường liên ngân hàng',
              omo:'Tín phiếu và nghiệp vụ thị trường mở của Ngân hàng Nhà nước' },
@@ -29,6 +29,19 @@ export const DICT = {
         l1:'Các chuỗi khác đơn vị nên đường biểu đồ biểu diễn vị trí 0–100 trong biên độ của chính chuỗi đó, không phải giá trị tuyệt đối.',
         l2:'Bơm/hút ròng là dòng tiền từng ngày và có thể đổi dấu; cần đọc cùng giá trị gốc trên dải số liệu.'
       }
+    },
+    gold: {
+      m:{ worldVnd:'TG quy đổi', sjcBuy:'SJC mua', sjcSell:'SJC bán', premium:'Premium' },
+      metricTip:'Bật hoặc tắt chuỗi giá vàng',
+      key:{ xau:'Vàng quốc tế', worldVnd:'Vàng TG quy đổi', sjcBuy:'SJC mua vào', sjcSell:'SJC bán ra', premium:'Chênh SJC–TG' },
+      unit:{ xau:'USD/oz', worldVnd:'triệu/lượng', sjcBuy:'triệu/lượng', sjcSell:'triệu/lượng', premium:'triệu/lượng' },
+      col:{ date:'Ngày', xau:'Vàng USD/oz', world:'TG quy đổi', sell:'SJC bán', premium:'Chênh lệch' },
+      note:{ stack:'Các panel dùng chung thời gian nhưng giữ đúng đơn vị: USD/oz và triệu đồng/lượng.', raw:'XAU/USD dùng trục phải; chuỗi có dấu ← dùng trục trái, các chuỗi khác tự auto-fit.', index:'Các chuỗi được chuẩn hóa 0–100 trong kỳ để so tốc độ biến động.' },
+      about:{ h1:'Cách đọc',h2:'Nguồn dữ liệu',h3:'Lưu ý',
+        p1:'Chart vàng độc lập gồm giá quốc tế, giá quốc tế quy đổi, giá mua/bán vàng miếng SJC tại TP.HCM và mức chênh giá SJC so với thế giới.',
+        p2:'Giá fix London từ LBMA, nối với hợp đồng vàng COMEX GC=F của Yahoo Finance. Giá SJC lấy trực tiếp từ API biểu đồ chính thức của SJC.',
+        l1:'Giá thế giới quy đổi dùng USD/VND và công thức 1 lượng = 37,5 gram; chưa gồm thuế, phí, gia công và chi phí phân phối.',
+        l2:'Premium = giá SJC bán ra trừ giá thế giới quy đổi, cùng đơn vị triệu đồng/lượng.' }
     },
     omo: {
       m: { repoIn:'Bơm OMO', repoBal:'OMO lưu hành', billBal:'Tín phiếu' },
@@ -147,8 +160,8 @@ export const DICT = {
 
   en: {
     locale: 'en-US',
-    ws: { market:'Overview' },
-    wsTip: { market:'Compare VNINDEX with valuation, FX and liquidity', val:'VNINDEX with market P/E and P/B',
+    ws: { market:'VNINDEX', gold:'GOLD' },
+    wsTip: { market:'Compare VNINDEX with valuation, FX and liquidity', gold:'International gold and SJC bullion chart', val:'VNINDEX with market P/E and P/B',
              fx:'USD/VND against dollar strength and USD/CNY',
              ib:'Average VND interbank transaction rates by tenor',
              omo:'State Bank open-market operations and bill liquidity absorption' },
@@ -172,6 +185,19 @@ export const DICT = {
         l1:'Because units differ, each line shows its 0–100 position within its own range rather than an absolute level.',
         l2:'Net injection is a daily flow that can change sign; use the raw-value strip for interpretation.'
       }
+    },
+    gold: {
+      m:{ worldVnd:'World in VND', sjcBuy:'SJC buy', sjcSell:'SJC sell', premium:'Premium' },
+      metricTip:'Toggle gold-price series',
+      key:{ xau:'International gold', worldVnd:'World gold converted', sjcBuy:'SJC bid', sjcSell:'SJC ask', premium:'SJC–world premium' },
+      unit:{ xau:'USD/oz', worldVnd:'VND mn/tael', sjcBuy:'VND mn/tael', sjcSell:'VND mn/tael', premium:'VND mn/tael' },
+      col:{ date:'Date', xau:'XAU/USD', world:'World converted', sell:'SJC ask', premium:'Premium' },
+      note:{ stack:'Panels share time while retaining their native units: USD/oz and VND million per tael.', raw:'XAU/USD uses the right axis; the ← series uses the left while others auto-fit.', index:'Series are scaled 0–100 over the period to compare movement.' },
+      about:{ h1:'How to read',h2:'Data sources',h3:'Notes',
+        p1:'A standalone gold chart with international gold, converted world price, SJC bullion bid/ask in Ho Chi Minh City, and the SJC premium over world gold.',
+        p2:'London PM benchmark from LBMA is joined to Yahoo Finance COMEX gold futures GC=F. SJC prices come directly from SJC’s official chart API.',
+        l1:'Converted world gold uses USD/VND and 1 Vietnamese tael = 37.5 grams; taxes, fabrication and distribution costs are excluded.',
+        l2:'Premium equals the SJC ask minus converted world gold, in VND million per tael.' }
     },
     omo: {
       m: { repoIn:'OMO injection', repoBal:'OMO outstanding', billBal:'Bills' },

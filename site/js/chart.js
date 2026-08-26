@@ -30,6 +30,11 @@ export const SERIES = {
   repoIn:   { key:'repo_injection',  cssVar:'--s2', digits:0 },
   repoBal:  { key:'repo_outstanding',cssVar:'--s3', digits:0 },
   billBal:  { key:'bill_outstanding',cssVar:'--s4', digits:0 },
+  xau:      { key:'xau',      cssVar:'--s1', digits:2 },
+  worldVnd: { key:'world_vnd',cssVar:'--s2', digits:2 },
+  sjcBuy:   { key:'sjc_buy',  cssVar:'--s3', digits:2 },
+  sjcSell:  { key:'sjc_sell', cssVar:'--s4', digits:2 },
+  premium:  { key:'premium',  cssVar:'--s5', digits:2 },
 };
 
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
