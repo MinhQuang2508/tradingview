@@ -45,8 +45,8 @@ const WS = {
   },
   gold: {
     file: 'data/gold.json', primary: 'xau',
-    optional: ['worldVnd', 'sjcBuy', 'sjcSell', 'premium'],
-    metrics: ['worldVnd', 'sjcBuy', 'sjcSell', 'premium'], fromKey: null,
+    optional: ['worldVnd', 'sjcBuy', 'sjcSell', 'premium', 'cbNet'],
+    metrics: ['worldVnd', 'sjcBuy', 'sjcSell', 'premium', 'cbNet'], fromKey: null,
   },
 };
 
@@ -58,7 +58,7 @@ const state = Object.assign({
   // Kiểu xem và chỉ tiêu đối chiếu tách riêng cho từng workspace: tỷ giá có ba
   // chuỗi lệch thang nhau hàng nghìn lần nên mặc định phải là xếp tầng.
   view: { market: 'stack', gold: 'stack', val: 'dual', fx: 'stack', ib: 'stack', omo: 'stack' },
-  metrics: { market: ['pe', 'usdvnd', 'overnight', 'net'], gold: ['worldVnd', 'sjcBuy', 'sjcSell', 'premium'], val: ['pe'], fx: ['dxy', 'usdcny'], ib: ['month1', 'month3'], omo: ['repoIn', 'billBal'] },
+  metrics: { market: ['pe', 'usdvnd', 'overnight', 'net'], gold: ['worldVnd', 'sjcBuy', 'sjcSell', 'premium', 'cbNet'], val: ['pe'], fx: ['dxy', 'usdcny'], ib: ['month1', 'month3'], omo: ['repoIn', 'billBal'] },
 }, JSON.parse(localStorage.getItem(LS) || '{}'));
 const requestedWs = new URLSearchParams(location.search).get('tab');
 if (['market', 'gold'].includes(requestedWs)) state.ws = requestedWs;
@@ -73,7 +73,7 @@ state.metrics.ib ||= ['month1', 'month3'];
 state.view.omo ||= 'stack';
 state.metrics.omo ||= ['repoIn', 'billBal'];
 state.view.gold ||= 'stack';
-state.metrics.gold ||= ['worldVnd', 'sjcBuy', 'sjcSell', 'premium'];
+if (!state.metrics.gold?.includes('cbNet')) state.metrics.gold = ['worldVnd', 'sjcBuy', 'sjcSell', 'premium', 'cbNet'];
 if (!WS[state.ws].optional.includes(state.axisMetric)) state.axisMetric = WS[state.ws].optional[0];
 
 const save = () => localStorage.setItem(LS, JSON.stringify(state));
@@ -200,7 +200,7 @@ async function loadWs(ws, quiet = false) {
   const keys = ws === 'val' ? ['i', 'pe', 'pb']
     : ws === 'fx' ? ['usdvnd', 'dxy', 'usdcny']
     : ws === 'ib' ? ['overnight', 'week_1', 'week_2', 'month_1', 'month_3', 'month_6', 'month_9']
-    : ws === 'gold' ? ['xau', 'world_vnd', 'sjc_buy', 'sjc_sell', 'premium']
+    : ws === 'gold' ? ['xau', 'world_vnd', 'sjc_buy', 'sjc_sell', 'premium', 'cb_net']
     : ['net', 'repo_injection', 'repo_outstanding', 'bill_outstanding'];
 
   rowsOf[ws] = json.series.map((r, k, arr) => {
@@ -210,7 +210,7 @@ async function loadWs(ws, quiet = false) {
     if (q) { out.vcb_buy = q.buy; out.vcb_sell = q.sell; }
     for (const key of keys) {
       out['d_' + key] = (r[key] == null || p?.[key] == null) ? null
-        : (ws === 'ib' || ws === 'omo' || (ws === 'gold' && key === 'premium'))
+        : (ws === 'ib' || ws === 'omo' || (ws === 'gold' && ['premium', 'cb_net'].includes(key)))
           ? r[key] - p[key] : (r[key] / p[key] - 1) * 100;
     }
     return out;
@@ -316,6 +316,8 @@ function renderChrome() {
     : state.ws === 'market' ? t.market.metricTip
     : state.ws === 'fx' ? t.fx.metricTip : state.ws === 'ib' ? t.ib.metricTip
     : state.ws === 'gold' ? t.gold.metricTip : t.omo.metricTip;
+  $('#cbGoldLink').classList.toggle('hidden', state.ws !== 'gold');
+  $('#cbGoldLink').textContent = t.gold.tableLink;
 
   $$('.tab').forEach(b => {
     b.textContent = t.tab[b.dataset.tab];
@@ -426,12 +428,17 @@ function renderReadout(row) {
   if (state.ws === 'gold') {
     const names = [cfg().primary, ...metrics()];
     $('#readout').innerHTML = roItem(t.roDate, fdate(row.d)) + names.map((name, i) => {
-      const key = SERIES[name].key, delta = row['d_' + key];
-      const suffix = name === 'xau' ? ' USD' : ' tr';
+      const key = SERIES[name].key;
+      const cbRow = name === 'cbNet'
+        ? [...ROWS()].reverse().find(r => r.d <= row.d && r.cb_net != null) : null;
+      const value = cbRow ? cbRow.cb_net : row[key];
+      const delta = row['d_' + key];
+      const suffix = name === 'xau' ? ' USD' : name === 'cbNet' ? ' t' : ' tr';
       return `<div class="ro"><span class="ro-k c-s${i + 1}">${t.gold.key[name]}</span>`
-        + `<span class="ro-v num c-s${i + 1}">${fmt(row[key], 2)}${row[key] == null ? '' : suffix}</span>`
+        + `<span class="ro-v num c-s${i + 1}">${fmt(value, name === 'cbNet' ? 1 : 2)}${value == null ? '' : suffix}`
+        + `${cbRow ? ` <small>${cbRow.d.slice(0, 7)}</small>` : ''}</span>`
         + `<span class="ro-d num ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}">`
-        + `${delta == null ? '—' : `${delta > 0 ? '+' : ''}${fmt(delta)}${name === 'premium' ? ' tr' : '%'}`}</span></div>`;
+        + `${name === 'cbNet' || delta == null ? '—' : `${delta > 0 ? '+' : ''}${fmt(delta)}${name === 'premium' ? ' tr' : '%'}`}</span></div>`;
     }).join('');
     return;
   }
@@ -644,6 +651,7 @@ function tableColumns() {
       { key:'d', label:c.date, type:'date' }, { key:'xau', label:c.xau, digits:2 },
       { key:'world_vnd', label:c.world, digits:2 }, { key:'sjc_sell', label:c.sell, digits:2 },
       { key:'premium', label:c.premium, digits:2 },
+      { key:'cb_net', label:c.cbNet, digits:1 },
     ];
   }
   if (state.ws === 'omo') {

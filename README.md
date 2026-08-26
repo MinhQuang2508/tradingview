@@ -4,8 +4,10 @@ Terminal web tổng hợp định giá và thanh khoản thị trường Việt 
 
 Tab **Giá vàng** là chart độc lập gồm vàng quốc tế USD/oz, giá thế giới quy đổi
 sang triệu đồng/lượng, giá mua/bán vàng miếng SJC TP.HCM và premium SJC so với
-thế giới. Chuỗi quốc tế ghép benchmark London PM của LBMA với COMEX `GC=F`;
-chuỗi trong nước lấy trực tiếp API biểu đồ chính thức của SJC.
+thế giới. Panel cuối là lượng mua/bán ròng theo tháng của các ngân hàng trung
+ương, liên kết sang bảng 88 thực thể tại `gold.koliaphan.net/cbgold.html`.
+Chuỗi quốc tế ghép benchmark London PM của LBMA với COMEX `GC=F`; chuỗi trong
+nước lấy trực tiếp API biểu đồ chính thức của SJC; dòng NHTW dùng IMF IRFCL.
 
 **→ https://minhquang2508.github.io/tradingview/**
 

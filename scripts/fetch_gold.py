@@ -67,12 +67,43 @@ def sjc_history():
         time.sleep(.08)
     return rows
 
+def central_bank_flows():
+    """Gom mua/bán ròng theo tháng từ đúng dataset đang cấp cho cbgold.html."""
+    url = "https://gold.koliaphan.net/cbgold_data.js"
+    req = urllib.request.Request(url + f"?t={int(time.time())}", headers={"User-Agent": UA})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        text = resp.read().decode("utf-8-sig")
+    prefix = "window.CB_GOLD = "
+    if prefix not in text: raise RuntimeError("cbgold_data.js sai định dạng")
+    doc = json.loads(text.split(prefix, 1)[1].strip().removesuffix(";"))
+    months = doc["months"]
+    totals = {m: {"cb_net": 0.0, "cb_buy": 0.0, "cb_sell": 0.0,
+                  "cb_buyers": 0, "cb_sellers": 0} for m in months}
+    for e in doc["entities"]:
+        if e.get("isAggregate"): continue  # Euro area/ECB would double-count members.
+        start = months.index(e["from"])
+        prev = None
+        for offset, holding in enumerate(e["v"]):
+            pos = start + offset
+            if pos >= len(months): break
+            if holding is None: continue
+            if prev is not None:
+                change = float(holding) - float(prev)
+                x = totals[months[pos]]
+                x["cb_net"] += change
+                if change >= 0.1: x["cb_buy"] += change; x["cb_buyers"] += 1
+                elif change <= -0.1: x["cb_sell"] += change; x["cb_sellers"] += 1
+            prev = holding
+    return {m + "-01": {k: round(v, 3) if isinstance(v, float) else v for k, v in x.items()}
+            for m, x in totals.items()}, doc.get("source"), doc.get("sourceUrl")
+
 def main():
     xau = world_gold()
     sjc = sjc_history()
+    cb, cb_source, cb_url = central_bank_flows()
     fxdoc = json.loads((ROOT / "site/data/fx.json").read_text())
     fx = {r["d"]: r.get("usdvnd") for r in fxdoc["series"] if r.get("usdvnd")}
-    dates = sorted(set(xau) | set(sjc))
+    dates = sorted(set(xau) | set(sjc) | set(cb))
     last_fx = None; series = []
     for d in dates:
         if d in fx: last_fx = fx[d]
@@ -86,13 +117,16 @@ def main():
             row.update({k: v for k, v in sjc[d].items() if not k.startswith("_")})
             if row.get("sjc_sell") is not None and row.get("world_vnd") is not None:
                 row["premium"] = round(row["sjc_sell"] - row["world_vnd"], 3)
+        if d in cb: row.update(cb[d])
         series.append(row)
     doc = {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
            "source": "LBMA + Yahoo Finance (GC=F) + SJC official",
            "source_urls": ["https://prices.lbma.org.uk/json/gold_pm.json",
-             "https://finance.yahoo.com/quote/GC=F/", "https://sjc.com.vn/bieu-do-gia-vang"],
+             "https://finance.yahoo.com/quote/GC=F/", "https://sjc.com.vn/bieu-do-gia-vang", cb_url],
+           "central_bank_source": cb_source,
            "unit": {"xau": "USD/oz", "world_vnd": "triệu VND/lượng",
-                    "sjc_buy": "triệu VND/lượng", "sjc_sell": "triệu VND/lượng", "premium": "triệu VND/lượng"},
+                    "sjc_buy": "triệu VND/lượng", "sjc_sell": "triệu VND/lượng", "premium": "triệu VND/lượng",
+                    "cb_net": "tấn/tháng"},
            "series": series}
     OUT.write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")))
     print(f"gold: {len(series)} ngày; SJC {len(sjc)} ngày; {series[0]['d']} → {series[-1]['d']}")

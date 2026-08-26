@@ -35,6 +35,7 @@ export const SERIES = {
   sjcBuy:   { key:'sjc_buy',  cssVar:'--s3', digits:2 },
   sjcSell:  { key:'sjc_sell', cssVar:'--s4', digits:2 },
   premium:  { key:'premium',  cssVar:'--s5', digits:2 },
+  cbNet:    { key:'cb_net',   cssVar:'--s6', digits:1 },
 };
 
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
