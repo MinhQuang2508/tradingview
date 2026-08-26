@@ -74,10 +74,9 @@ Nguồn tỷ giá:
 | USD/VND | Yahoo Finance — `USDVND=X` |
 | Tỷ giá Vietcombank | `portal.vietcombank.com.vn/Usercontrols/TVPortal.TyGia/pXML.aspx?b=10` |
 
-Tab Lãi suất LNH lấy số liệu gốc do **Ngân hàng Nhà nước Việt Nam** công bố,
-qua bản chuẩn hoá của Viet Dataverse. Đặt `VIETDATAVERSE_API_KEY` ở môi trường
-máy cập nhật để lấy trọn lịch sử; không có key thì script merge snapshot công
-khai một tháng vào file cũ, nhờ vậy chuỗi vẫn bồi dần mà không lộ secret.
+Chuỗi Lãi suất LNH lấy số liệu gốc do **Ngân hàng Nhà nước Việt Nam** công bố,
+qua API công khai do Dữ Liệu Kinh Tế tổng hợp. API thực tế có 2.664 quan sát
+từ 05/01/2015; snapshot Viet Dataverse một tháng chỉ được dùng làm dự phòng.
 
 Tab Hút/Bơm lấy kết quả nghiệp vụ thị trường mở do **Ngân hàng Nhà nước Việt
 Nam** công bố, qua bảng tổng hợp công khai của Dữ Liệu Kinh Tế. Chuỗi ròng đã

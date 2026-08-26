@@ -39,8 +39,6 @@ jobs:
       - name: Tải lại dữ liệu (dự phòng)
         if: github.event_name != 'push'
         continue-on-error: true
-        env:
-          VIETDATAVERSE_API_KEY: ${{ secrets.VIETDATAVERSE_API_KEY }}
         run: |
           cp site/data/vnindex_pe.json /tmp/pe_truoc.json
           cp site/data/fx.json /tmp/fx_truoc.json

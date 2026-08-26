@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-"""Dựng site/data/interbank.json từ lãi suất liên ngân hàng do SBV công bố.
+"""Dựng chuỗi lãi suất liên ngân hàng từ dữ liệu NHNN do DLKT tổng hợp.
 
-Viet Dataverse chuẩn hoá dữ liệu nguồn SBV thành cùng một schema. Có API key thì
-tải trọn lịch sử; không có key thì lấy snapshot công khai một tháng và merge với
-file cũ. Cách sau giúp job dự phòng trên GitHub vẫn bồi được dữ liệu mà không lộ
-secret ra frontend.
+Nguồn chính trả toàn bộ lịch sử công khai. Snapshot Viet Dataverse chỉ là dự
+phòng khi nguồn chính gián đoạn; dữ liệu cũ luôn được merge để không mất phiên.
 """
 
 import datetime as dt
@@ -15,41 +13,56 @@ import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "site", "data", "interbank.json")
-API = "https://api.vietdataverse.online/api/v1/sbv-interbank?period=all"
-PUBLIC = "https://api.vietdataverse.online/fe/data/sbv_1m.json"
+FULL = "https://api.dulieukinhte.com/api/tablemacro/391?full=1"
+FALLBACK = "https://api.vietdataverse.online/fe/data/sbv_1m.json"
 
-FIELDS = {
-    "overnight": "overnight",
-    "week_1": "week_1",
-    "week_2": "week_2",
-    "month_1": "month_1",
-    "month_3": "month_3",
-    "month_6": "month_6",
-    "month_9": "month_9",
+ROWS = {
+    34248: "overnight", 34249: "week_1", 34250: "week_2",
+    34251: "month_1", 34252: "month_3", 34253: "month_6", 34254: "month_9",
 }
 
 
-def fetch_json(url, api_key=None):
-    headers = {"User-Agent": "tradingview-data/1.0", "Accept": "application/json"}
-    if api_key:
-        headers["X-API-Key"] = api_key
-    req = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(req, timeout=60) as res:
+def fetch_json(url):
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "tradingview-data/1.0", "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=90) as res:
         return json.loads(res.read().decode("utf-8"))
 
 
-def rows_from(payload):
+def day_of(timestamp_ms):
+    vn = dt.timezone(dt.timedelta(hours=7))
+    return dt.datetime.fromtimestamp(timestamp_ms / 1000, vn).date().isoformat()
+
+
+def rows_from_dlkt(payload):
+    by_id = {row.get("id"): row for row in payload.get("row", [])}
+    if 34248 not in by_id:
+        raise RuntimeError("Nguồn thiếu dòng lãi suất qua đêm 34248")
+    merged = {}
+    for row_id, key in ROWS.items():
+        row = by_id.get(row_id)
+        if not row:
+            continue
+        for timestamp, value in row.get("data", []):
+            if not isinstance(value, (int, float)):
+                continue
+            day = day_of(timestamp)
+            merged.setdefault(day, {"d": day})[key] = round(float(value), 4)
+    return [merged[d] for d in sorted(merged) if "overnight" in merged[d]]
+
+
+def rows_from_snapshot(payload):
     data = payload.get("data", payload)
     dates = data.get("dates") or []
     rows = []
     for i, day in enumerate(dates):
         row = {"d": day}
-        for source, target in FIELDS.items():
-            values = data.get(source) or []
+        for key in ROWS.values():
+            values = data.get(key) or []
             value = values[i] if i < len(values) else None
             if isinstance(value, (int, float)):
-                row[target] = round(float(value), 4)
-        if len(row) > 1:
+                row[key] = round(float(value), 4)
+        if "overnight" in row:
             rows.append(row)
     return rows
 
@@ -63,34 +76,34 @@ def old_rows():
 
 
 def build():
-    api_key = os.environ.get("VIETDATAVERSE_API_KEY", "").strip()
-    source_url = API if api_key else PUBLIC
+    source_url = "https://dulieukinhte.com/du-lieu-dong/lai-suat-thi-truong-lien-ngan-hang-qua-dem-34248"
+    transport = "Dữ Liệu Kinh Tế full public API"
     try:
-        payload = fetch_json(source_url, api_key or None)
+        fresh = rows_from_dlkt(fetch_json(FULL))
+        full_history = True
     except Exception as exc:
-        if not api_key:
-            raise
-        # Key hết quota/hết hạn không được làm hỏng toàn bộ lượt cập nhật.
-        print(f"· API đầy đủ lỗi ({exc}) — dùng snapshot công khai", file=sys.stderr)
-        api_key = ""
-        source_url = PUBLIC
-        payload = fetch_json(PUBLIC)
-    fresh = rows_from(payload)
+        print(f"· Nguồn lịch sử đầy đủ lỗi ({exc}) — dùng snapshot dự phòng", file=sys.stderr)
+        fresh = rows_from_snapshot(fetch_json(FALLBACK))
+        transport = "Viet Dataverse public 1-month fallback"
+        full_history = False
     if not fresh:
-        raise RuntimeError("Nguồn trả về nhưng không có điểm lãi suất hợp lệ")
+        raise RuntimeError("Nguồn trả về nhưng không có lãi suất qua đêm hợp lệ")
 
-    # Merge theo ngày và theo trường: snapshot ngắn không được xoá lịch sử, đồng
-    # thời một kỳ hạn bị thiếu hôm nay không được xoá giá trị đã tải trước đó.
-    merged = {r["d"]: dict(r) for r in old_rows() if r.get("d")}
-    for row in fresh:
-        merged.setdefault(row["d"], {"d": row["d"]}).update(row)
-    series = [merged[d] for d in sorted(merged)]
+    if full_history:
+        # Không trộn snapshot cũ vào lịch sử chuẩn: hai bên từng quy ước ngày
+        # khác nhau, merge sẽ tạo thêm các phiên giả lệch một ngày.
+        series = fresh
+    else:
+        merged = {r["d"]: dict(r) for r in old_rows() if r.get("d")}
+        for row in fresh:
+            merged.setdefault(row["d"], {"d": row["d"]}).update(row)
+        series = [merged[d] for d in sorted(merged)]
 
     out = {
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
-        "source": "State Bank of Vietnam (SBV), normalized by Viet Dataverse",
-        "source_url": "https://www.sbv.gov.vn/vi/lai-suat",
-        "transport": "full API" if api_key else "public 1-month snapshot (accumulating)",
+        "source": "State Bank of Vietnam (SBV), aggregated by Dữ Liệu Kinh Tế",
+        "source_url": source_url,
+        "transport": transport,
         "unit": "%/year",
         "series": series,
     }
@@ -100,7 +113,7 @@ def build():
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     os.replace(tmp, OUT)
     print(f"· Ghi {OUT}: {len(series)} phiên {series[0]['d']} → {series[-1]['d']} "
-          f"({out['transport']})")
+          f"({transport})")
     return out
 
 

@@ -25,7 +25,7 @@ export const DICT = {
       about: {
         h1:'Biểu đồ tổng hợp', h2:'Nguồn dữ liệu', h3:'Lưu ý',
         p1:'Một biểu đồ duy nhất so sánh VNINDEX, P/E toàn thị trường, USD/VND, lãi suất liên ngân hàng qua đêm và lượng bơm/hút ròng qua OMO, tín phiếu.',
-        p2:'VNINDEX và định giá lấy từ Vietcap/VNDirect; USD/VND từ Yahoo Finance; lãi suất liên ngân hàng từ số liệu NHNN qua Viet Dataverse; OMO và tín phiếu từ số liệu NHNN do Dữ Liệu Kinh Tế tổng hợp.',
+        p2:'VNINDEX và định giá lấy từ Vietcap/VNDirect; USD/VND từ Yahoo Finance; lãi suất liên ngân hàng, OMO và tín phiếu lấy từ số liệu NHNN do Dữ Liệu Kinh Tế tổng hợp.',
         l1:'Các chuỗi khác đơn vị nên đường biểu đồ biểu diễn vị trí 0–100 trong biên độ của chính chuỗi đó, không phải giá trị tuyệt đối.',
         l2:'Bơm/hút ròng là dòng tiền từng ngày và có thể đổi dấu; cần đọc cùng giá trị gốc trên dải số liệu.'
       }
@@ -63,10 +63,10 @@ export const DICT = {
       about: {
         h1:'Cách đọc', h2:'Nguồn dữ liệu', h3:'Giới hạn',
         p1:'Lãi suất liên ngân hàng là lãi suất giao dịch VND bình quân giữa các tổ chức tín dụng. Kỳ hạn qua đêm nhạy nhất với thanh khoản tức thời: tăng đột biến thường phản ánh nhu cầu vốn ngắn hạn trong hệ thống đang căng.',
-        p2:'Nguồn gốc là số liệu do Ngân hàng Nhà nước Việt Nam công bố. Pipeline lấy bản chuẩn hoá từ Viet Dataverse, lưu thành JSON tĩnh rồi mới đưa lên GitHub Pages; khoá API không bao giờ xuất hiện trong trình duyệt.',
+        p2:'Nguồn gốc là số liệu do Ngân hàng Nhà nước Việt Nam công bố. Pipeline lấy chuỗi chuẩn hoá công khai từ Dữ Liệu Kinh Tế, lưu thành JSON tĩnh rồi mới đưa lên GitHub Pages.',
         l1:'Đây là lãi suất bình quân của giao dịch đã phát sinh, không phải lãi suất điều hành và không phải lãi suất cho vay khách hàng.',
         l2:'Không phải ngày làm việc nào cũng có đủ giao dịch ở mọi kỳ hạn; ô trống được giữ nguyên, không nội suy.',
-        l3:'Khi chưa cấu hình API key, pipeline chỉ bồi dần từ snapshot công khai một tháng; lịch sử sẽ dài lên qua mỗi lần cập nhật.'
+        l3:'API hiện trả lịch sử thực tế từ 05/01/2015; mô tả SEO của trang nguồn ghi 2011 nhưng không được dùng để suy diễn thêm dữ liệu.'
       }
     },
     fx: {
@@ -168,7 +168,7 @@ export const DICT = {
       about: {
         h1:'Market overview', h2:'Data sources', h3:'Notes',
         p1:'One chart compares VNINDEX, market P/E, USD/VND, the overnight interbank rate, and net liquidity injection or withdrawal through OMO and bills.',
-        p2:'VNINDEX and valuation use Vietcap/VNDirect; USD/VND uses Yahoo Finance; interbank rates use SBV figures via Viet Dataverse; OMO and bills use SBV figures aggregated by Dữ Liệu Kinh Tế.',
+        p2:'VNINDEX and valuation use Vietcap/VNDirect; USD/VND uses Yahoo Finance; interbank rates, OMO and bills use SBV figures aggregated by Dữ Liệu Kinh Tế.',
         l1:'Because units differ, each line shows its 0–100 position within its own range rather than an absolute level.',
         l2:'Net injection is a daily flow that can change sign; use the raw-value strip for interpretation.'
       }
@@ -206,10 +206,10 @@ export const DICT = {
       about: {
         h1:'How to read', h2:'Data source', h3:'Limitations',
         p1:'Interbank rates are average VND transaction rates between credit institutions. Overnight is the most sensitive gauge of immediate liquidity; sharp spikes commonly signal short-term funding pressure.',
-        p2:'The underlying figures are published by the State Bank of Vietnam. The pipeline retrieves a normalized copy from Viet Dataverse and writes static JSON for GitHub Pages; an API key is never exposed to browsers.',
+        p2:'The underlying figures are published by the State Bank of Vietnam. The pipeline retrieves the public normalized series from Dữ Liệu Kinh Tế and writes static JSON for GitHub Pages.',
         l1:'These are averages of completed transactions, not policy rates or customer lending rates.',
         l2:'Not every business day has transactions at every tenor; missing observations remain blank and are never interpolated.',
-        l3:'Without an API key the pipeline accumulates the public one-month snapshot, so history grows with each update.'
+        l3:'The API currently returns actual history from 5 January 2015; the source page’s 2011 SEO description is not used to infer additional observations.'
       }
     },
     fx: {
